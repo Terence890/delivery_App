@@ -30,9 +30,11 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email.toLowerCase().trim(), password);
+      console.log('Login successful, waiting for navigation...');
       // Navigation will be handled by index.tsx
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      console.error('Login error:', error);
+      Alert.alert('Login Failed', error.message || 'An error occurred during login');
     } finally {
       setLoading(false);
     }
