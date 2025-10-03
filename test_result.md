@@ -131,15 +131,18 @@ backend:
 
   - task: "Cart management endpoints"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Cart endpoints implemented (add, update, remove, clear). Needs testing with full flow."
+      - working: true
+        agent: "testing"
+        comment: "All cart endpoints tested successfully: GET /cart, POST /cart/add, POST /cart/update, POST /cart/remove/{id}, DELETE /cart/clear. Full cart flow working - add items, update quantities, remove items, view cart with populated product details. Cart properly cleared after order creation."
 
   - task: "Order management endpoints"
     implemented: true
