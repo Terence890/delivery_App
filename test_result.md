@@ -146,15 +146,18 @@ backend:
 
   - task: "Order management endpoints"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Order creation, listing, status updates, and delivery agent assignment implemented. Needs testing."
+      - working: true
+        agent: "testing"
+        comment: "All order endpoints tested successfully: POST /orders (creates order from cart), GET /orders (role-based filtering), GET /orders/{id}, PUT /orders/{id}/status, POST /orders/{id}/accept. Full order flow working - order creation clears cart, updates stock, role-based access control working, delivery agent can accept orders and update status. Admin can view all orders and update status."
 
   - task: "Delivery zones with geospatial support"
     implemented: true
