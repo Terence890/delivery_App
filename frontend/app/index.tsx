@@ -1,16 +1,39 @@
-import { Text, View, StyleSheet, Image } from "react-native";
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import React, { useEffect } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { useAuthStore } from '../store/authStore';
+import { useRouter } from 'expo-router';
 
 export default function Index() {
-  console.log(EXPO_PUBLIC_BACKEND_URL, "EXPO_PUBLIC_BACKEND_URL");
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated && user) {
+        // Route based on user role
+        switch (user.role) {
+          case 'customer':
+            router.replace('/(customer)/home');
+            break;
+          case 'delivery_agent':
+            router.replace('/(delivery)/orders');
+            break;
+          case 'admin':
+            router.replace('/(admin)/dashboard');
+            break;
+          default:
+            router.replace('/login');
+        }
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [isAuthenticated, isLoading, user]);
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/images/app-image.png")}
-        style={styles.image}
-      />
+      <ActivityIndicator size="large" color="#007AFF" />
+      <Text style={styles.text}>Loading...</Text>
     </View>
   );
 }
@@ -18,13 +41,13 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0c0c0c",
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
+  text: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
   },
 });
