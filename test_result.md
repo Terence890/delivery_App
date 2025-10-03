@@ -176,15 +176,18 @@ backend:
 
   - task: "Admin statistics endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "low"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Dashboard stats endpoint implemented. Needs testing with real data."
+      - working: true
+        agent: "testing"
+        comment: "Admin statistics endpoint (GET /admin/stats) working correctly. Returns total_products, total_orders, total_customers, total_agents, and total_revenue. Admin-only access control properly enforced (403 for non-admin users). Tested with real data showing accurate counts."
 
 frontend:
   - task: "Customer App - Authentication flow"
