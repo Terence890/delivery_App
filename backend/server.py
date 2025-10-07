@@ -1,36 +1,49 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import ConnectionFailure
+from dotenv import load_dotenv
+import os
+import uuid
 from pydantic import BaseModel, Field
 from typing import List, Optional
-import uuid
 from datetime import datetime, timedelta
-import jwt
+from jose import JWTError, jwt
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import bcrypt
-from bson import ObjectId
 
+# Load environment variables
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(str(ROOT_DIR / '.env'))
 
-# MongoDB connection
+# ============= DATABASE =============
+
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # JWT Configuration
-SECRET_KEY = os.environ.get('JWT_SECRET', 'your-secret-key-change-in-production')
-ALGORITHM = "HS256"
+SECRET_KEY = os.environ['JWT_SECRET']
+ALGORITHM = os.environ['ALGORITHM']
 ACCESS_TOKEN_EXPIRE_MINUTES = 43200  # 30 days
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    yield
+    # Shutdown
+    client.close()
+
 # Create the main app
-app = FastAPI()
-api_router = APIRouter(prefix="/api")
-security = HTTPBearer()
+app = FastAPI(lifespan=lifespan)
+api_router = APIRouter()
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Delivery App API"}
 
 # ============= MODELS =============
 
@@ -144,6 +157,8 @@ class DeliveryZoneCreate(BaseModel):
 
 # ============= AUTHENTICATION HELPERS =============
 
+security = HTTPBearer()
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -158,8 +173,8 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
     try:
-        token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
@@ -185,23 +200,29 @@ def require_role(allowed_roles: List[str]):
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
-    # Check if user exists
-    existing_user = await db.users.find_one({"email": user_data.email})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create user
-    user = User(
-        **user_data.dict(exclude={'password'}),
-        password=hash_password(user_data.password)
-    )
-    await db.users.insert_one(user.dict())
-    
-    # Create token
-    access_token = create_access_token(data={"sub": user.id, "role": user.role})
-    
-    user_response = UserResponse(**user.dict())
-    return TokenResponse(access_token=access_token, user=user_response)
+    try:
+        # Check if user exists
+        existing_user = await db.users.find_one({"email": user_data.email})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Create user
+        user = User(
+            **user_data.dict(exclude={'password'}),
+            password=hash_password(user_data.password)
+        )
+        await db.users.insert_one(user.dict())
+        
+        # Create token
+        access_token = create_access_token(data={"sub": user.id, "role": user.role})
+        
+        user_response = UserResponse(**user.dict())
+        return TokenResponse(access_token=access_token, user=user_response)
+    except ConnectionFailure:
+        raise HTTPException(status_code=503, detail="Could not connect to the database.")
+    except Exception as e:
+        logger.error(f"Error during registration: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred.")
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
@@ -562,7 +583,3 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()

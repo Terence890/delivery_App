@@ -10,7 +10,7 @@ import sys
 from typing import Dict, Any, Optional
 
 # Configuration
-BASE_URL = "https://ecozone-app.preview.emergentagent.com/api"
+BASE_URL = "http://127.0.0.1:8000"
 HEADERS = {"Content-Type": "application/json"}
 
 # Test accounts (as provided in review request)
@@ -38,7 +38,7 @@ class APITester:
         print(f"{status}: {test_name}")
         if details:
             print(f"   Details: {details}")
-    
+
     def make_request(self, method: str, endpoint: str, data: Dict = None, token: str = None) -> tuple:
         """Make HTTP request and return (success, response_data, status_code)"""
         url = f"{BASE_URL}{endpoint}"
@@ -131,7 +131,7 @@ class APITester:
         
         # Test admin-only product creation
         if "admin" in self.tokens:
-            new_product = {
+            new_product_data = {
                 "name": "Test Product API",
                 "description": "Created via API test",
                 "price": 99.99,
@@ -141,15 +141,22 @@ class APITester:
             }
             
             success, data, status_code = self.make_request(
-                "POST", "/products", new_product, self.tokens["admin"]
+                "POST", "/products", new_product_data, self.tokens["admin"]
             )
             
             if success and data.get("id"):
                 self.created_products.append(data["id"])
                 self.log_result("Create product (admin)", True, f"Created product: {data.get('name')}")
                 
+                # Immediately try to retrieve the newly created product
+                success_retrieve, retrieved_product, status_code_retrieve = self.make_request(
+                    "GET", f"/products/{data['id']}"
+                )
+                self.log_result("Retrieve newly created product", success_retrieve and retrieved_product.get("id") == data["id"],
+                               f"Status: {status_code_retrieve}, Product: {retrieved_product.get('name', 'N/A')}")
+
                 # Test update product
-                update_data = {**new_product, "name": "Updated Test Product", "price": 149.99}
+                update_data = {**new_product_data, "name": "Updated Test Product", "price": 149.99}
                 success, updated_data, status_code = self.make_request(
                     "PUT", f"/products/{data['id']}", update_data, self.tokens["admin"]
                 )
@@ -402,6 +409,7 @@ class APITester:
         print(f"Base URL: {BASE_URL}")
         
         # Run tests in order
+        self.register_test_users()
         self.test_authentication()
         self.test_products()
         self.test_cart_flow()

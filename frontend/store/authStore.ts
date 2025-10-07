@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import apiClient from '../utils/axios'; // Import the configured apiClient
 
 interface User {
   id: string;
@@ -50,7 +48,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (email: string, password: string) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
+      const response = await apiClient.post('/auth/login', {
         email,
         password,
       });
@@ -69,8 +67,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   register: async (email: string, password: string, name: string, role: string) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/register`, {
-        email,
+      const response = await apiClient.post('/auth/register', {
+        email: email.toLowerCase().trim(), // Ensure email is stored in lowercase
         password,
         name,
         role,
@@ -97,16 +95,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateProfile: async (data: any) => {
     try {
       const token = get().token;
-      const response = await axios.put(`${API_URL}/api/auth/profile`, data, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiClient.put('/auth/profile', data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
       const updatedUser = response.data;
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       set({ user: updatedUser });
     } catch (error: any) {
-      console.error('Update profile error:', error);
-      throw new Error('Failed to update profile');
+      console.error('Update profile error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.detail || 'Failed to update profile');
     }
   },
 }));
