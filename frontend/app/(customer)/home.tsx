@@ -21,7 +21,7 @@ interface Product {
   brand: string;
   description: string;
   price: number;
-  category: stri00000ng;
+  category: string;
   stock: number;
   unit: string;
   variant: string;
