@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Alert,
+  Linking, // Import Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../utils/axios';
@@ -42,7 +43,7 @@ export default function ActiveDeliveriesScreen() {
 
   const fetchActiveOrders = async () => {
     try {
-      const response = await apiClient.get('/api/orders');
+      const response = await apiClient.get('/orders');
       const activeOrders = response.data.filter(
         (order: Order) =>
           order.delivery_agent_id === user?.id &&
@@ -64,7 +65,7 @@ export default function ActiveDeliveriesScreen() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      await apiClient.put(`/api/orders/${orderId}/status`, {
+      await apiClient.put(`/orders/${orderId}/status`, {
         status: newStatus,
       });
       Alert.alert('Success', `Order marked as ${newStatus.replace('_', ' ')}`);
@@ -76,6 +77,14 @@ export default function ActiveDeliveriesScreen() {
 
   const renderOrder = ({ item }: { item: Order }) => {
     const isOutForDelivery = item.status === 'out_for_delivery';
+
+    const openMapForAddress = (address: string) => {
+      const encodedAddress = encodeURIComponent(address);
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+      Linking.openURL(url).catch((err) =>
+        console.error('Failed to open map', err)
+      );
+    };
 
     return (
       <View style={styles.orderCard}>
@@ -105,6 +114,13 @@ export default function ActiveDeliveriesScreen() {
           <Text style={styles.address} numberOfLines={2}>
             {item.user_address}
           </Text>
+          <TouchableOpacity
+            style={styles.trackButton}
+            onPress={() => openMapForAddress(item.user_address)}
+          >
+            <Ionicons name="navigate-circle-outline" size={20} color="#007AFF" />
+            <Text style={styles.trackButtonText}>Track</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.itemsContainer}>
@@ -250,6 +266,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    flexWrap: 'wrap',
   },
   phone: {
     fontSize: 14,
@@ -258,16 +275,31 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   address: {
-    flex: 1,
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: '#555',
     marginLeft: 8,
+    flex: 1,
+  },
+  trackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f0ff',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    marginLeft: 10,
+  },
+  trackButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   itemsContainer: {
-    marginVertical: 12,
-    paddingTop: 12,
+    marginTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
+    paddingTop: 10,
   },
   itemsLabel: {
     fontSize: 12,

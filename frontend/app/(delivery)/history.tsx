@@ -33,7 +33,7 @@ export default function DeliveryHistoryScreen() {
 
   const fetchHistory = async () => {
     try {
-      const response = await apiClient.get('/api/orders');
+      const response = await apiClient.get('/orders');
       const deliveredOrders = response.data.filter(
         (order: Order) =>
           order.delivery_agent_id === user?.id &&

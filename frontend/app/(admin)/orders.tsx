@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  SafeAreaView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../utils/axios';
 import { format } from 'date-fns';
@@ -61,7 +61,7 @@ export default function OrdersScreen() {
 
   const fetchOrders = async () => {
     try {
-      const response = await apiClient.get('/api/orders');
+      const response = await apiClient.get('/orders');
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -78,7 +78,7 @@ export default function OrdersScreen() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      await apiClient.put(`/api/orders/${orderId}/status`, {
+      await apiClient.put(`/orders/${orderId}/status`, {
         status: newStatus,
       });
       Alert.alert('Success', 'Order status updated');

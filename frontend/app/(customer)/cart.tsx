@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../utils/axios';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
+import * as Location from 'expo-location';
 
 interface CartItem {
   product_id: string;
@@ -33,6 +34,7 @@ export default function CartScreen() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
@@ -43,9 +45,35 @@ export default function CartScreen() {
     }
   }, []);
 
+  const handleGetCurrentLocation = async () => {
+    setIsFetchingLocation(true);
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Permission to access location was denied.');
+        setIsFetchingLocation(false);
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      let address = await Location.reverseGeocodeAsync(location.coords);
+      
+      if (address.length > 0) {
+        const { street, city, region, postalCode, country } = address[0];
+        const formattedAddress = `${street}, ${city}, ${region} ${postalCode}, ${country}`;
+        setDeliveryAddress(formattedAddress);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Could not fetch your location.');
+    } finally {
+      setIsFetchingLocation(false);
+    }
+  };
+
   const fetchCart = async () => {
     try {
-      const response = await apiClient.get('/api/cart');
+      const response = await apiClient.get('/cart');
       setCartItems(response.data.items);
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -58,7 +86,7 @@ export default function CartScreen() {
     if (newQuantity < 1) return;
 
     try {
-      await apiClient.post('/api/cart/update', {
+      await apiClient.post('/cart/update', {
         product_id: productId,
         quantity: newQuantity,
       });
@@ -71,7 +99,7 @@ export default function CartScreen() {
 
   const removeItem = async (productId: string) => {
     try {
-      await apiClient.post(`/api/cart/remove/${productId}`);
+      await apiClient.post(`/cart/remove/${productId}`);
       fetchCart();
     } catch (error) {
       console.error('Error removing item:', error);
@@ -100,7 +128,7 @@ export default function CartScreen() {
           onPress: async () => {
             setCheckoutLoading(true);
             try {
-              await apiClient.post('/api/orders', {
+              await apiClient.post('/orders', {
                 items: cartItems.map((item) => ({
                   product_id: item.product_id,
                   quantity: item.quantity,
@@ -199,18 +227,26 @@ export default function CartScreen() {
 
           <View style={styles.checkoutContainer}>
             <View style={styles.addressContainer}>
-              <Ionicons name="location-outline" size={20} color="#666" />
+              <Text style={styles.addressLabel}>Delivery Address</Text>
               <TextInput
                 style={styles.addressInput}
-                placeholder="Enter delivery address"
                 value={deliveryAddress}
                 onChangeText={setDeliveryAddress}
-                multiline
+                placeholder="Enter your delivery address"
               />
+              <TouchableOpacity style={styles.locationButton} onPress={handleGetCurrentLocation} disabled={isFetchingLocation}>
+                {isFetchingLocation ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <>
+                    <Ionicons name="location-sharp" size={16} color="#007AFF" />
+                    <Text style={styles.locationButtonText}>Use My Current Location</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
-
             <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>Total:</Text>
+              <Text style={styles.totalText}>Total:</Text>
               <Text style={styles.totalAmount}>${calculateTotal().toFixed(2)}</Text>
             </View>
 
@@ -333,19 +369,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 12,
     marginBottom: 16,
   },
+  addressLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   addressInput: {
-    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#eef',
+  },
+  locationButtonText: {
+    color: '#007AFF',
     marginLeft: 8,
-    fontSize: 14,
-    color: '#333',
-    minHeight: 40,
+    fontWeight: '600',
   },
   totalContainer: {
     flexDirection: 'row',
@@ -353,7 +403,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  totalLabel: {
+  totalText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',

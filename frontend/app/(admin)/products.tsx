@@ -8,12 +8,12 @@ import {
   Image,
   RefreshControl,
   ActivityIndicator,
-  SafeAreaView,
   Modal,
   TextInput,
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../utils/axios';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,10 +21,15 @@ import * as ImagePicker from 'expo-image-picker';
 interface Product {
   id: string;
   name: string;
+  brand: string;
   description: string;
   price: number;
   category: string;
   stock: number;
+  unit: string;
+  variant: string;
+  code?: string;
+  barcode?: string;
   image: string;
 }
 
@@ -36,10 +41,15 @@ export default function ProductsScreen() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    brand: '',
     description: '',
     price: '',
     category: '',
     stock: '',
+    unit: '',
+    variant: '',
+    code: '',
+    barcode: '',
     image: '',
   });
 
@@ -49,7 +59,7 @@ export default function ProductsScreen() {
 
   const fetchProducts = async () => {
     try {
-      const response = await apiClient.get('/api/products');
+      const response = await apiClient.get('/products');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -69,20 +79,30 @@ export default function ProductsScreen() {
       setEditingProduct(product);
       setFormData({
         name: product.name,
+        brand: product.brand,
         description: product.description,
         price: product.price.toString(),
         category: product.category,
         stock: product.stock.toString(),
+        unit: product.unit,
+        variant: product.variant,
+        code: product.code || '',
+        barcode: product.barcode || '',
         image: product.image,
       });
     } else {
       setEditingProduct(null);
       setFormData({
         name: '',
+        brand: '',
         description: '',
         price: '',
         category: '',
         stock: '',
+        unit: '',
+        variant: '',
+        code: '',
+        barcode: '',
         image: '',
       });
     }
@@ -104,7 +124,7 @@ export default function ProductsScreen() {
   };
 
   const saveProduct = async () => {
-    if (!formData.name || !formData.price || !formData.category || !formData.stock) {
+    if (!formData.name || !formData.brand || !formData.price || !formData.category || !formData.stock || !formData.unit || !formData.variant) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
@@ -112,18 +132,23 @@ export default function ProductsScreen() {
     try {
       const productData = {
         name: formData.name,
+        brand: formData.brand,
         description: formData.description,
         price: parseFloat(formData.price),
         category: formData.category,
         stock: parseInt(formData.stock),
+        unit: formData.unit,
+        variant: formData.variant,
+        code: formData.code || undefined,
+        barcode: formData.barcode || undefined,
         image: formData.image || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
       };
 
       if (editingProduct) {
-        await apiClient.put(`/api/products/${editingProduct.id}`, productData);
+        await apiClient.put(`products/${editingProduct.id}`, productData);
         Alert.alert('Success', 'Product updated successfully');
       } else {
-        await apiClient.post('/api/products', productData);
+        await apiClient.post('products', productData);
         Alert.alert('Success', 'Product created successfully');
       }
 
@@ -142,7 +167,7 @@ export default function ProductsScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiClient.delete(`/api/products/${productId}`);
+            await apiClient.delete(`products/${productId}`);
             Alert.alert('Success', 'Product deleted');
             fetchProducts();
           } catch (error) {
@@ -158,11 +183,12 @@ export default function ProductsScreen() {
       <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{item.name}</Text>
+        <Text style={styles.productBrand}>{item.brand}</Text>
         <Text style={styles.productCategory}>{item.category}</Text>
         <View style={styles.productFooter}>
           <View>
             <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-            <Text style={styles.productStock}>Stock: {item.stock}</Text>
+            <Text style={styles.productStock}>Stock: {item.stock} {item.unit}</Text>
           </View>
           <View style={styles.actions}>
             <TouchableOpacity
@@ -241,6 +267,13 @@ export default function ProductsScreen() {
             />
 
             <TextInput
+              style={styles.input}
+              placeholder="Brand *"
+              value={formData.brand}
+              onChangeText={(text) => setFormData({ ...formData, brand: text })}
+            />
+
+            <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Description"
               value={formData.description}
@@ -269,6 +302,35 @@ export default function ProductsScreen() {
               placeholder="Stock *"
               value={formData.stock}
               onChangeText={(text) => setFormData({ ...formData, stock: text })}
+              keyboardType="number-pad"
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Unit *"
+              value={formData.unit}
+              onChangeText={(text) => setFormData({ ...formData, unit: text })}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Variant *"
+              value={formData.variant}
+              onChangeText={(text) => setFormData({ ...formData, variant: text })}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Code"
+              value={formData.code}
+              onChangeText={(text) => setFormData({ ...formData, code: text })}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Barcode"
+              value={formData.barcode}
+              onChangeText={(text) => setFormData({ ...formData, barcode: text })}
               keyboardType="number-pad"
             />
 
@@ -345,6 +407,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  productBrand: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
   productCategory: {
     fontSize: 12,

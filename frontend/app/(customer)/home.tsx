@@ -18,10 +18,15 @@ import { useAuthStore } from '../../store/authStore';
 interface Product {
   id: string;
   name: string;
+  brand: string;
   description: string;
   price: number;
-  category: string;
+  category: stri00000ng;
   stock: number;
+  unit: string;
+  variant: string;
+  code: string | null;
+  barcode: string | null;
   image: string;
 }
 
@@ -33,6 +38,7 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -46,7 +52,7 @@ export default function HomeScreen() {
 
   const fetchProducts = async () => {
     try {
-      const response = await apiClient.get('/api/products');
+      const response = await apiClient.get('/products');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -58,7 +64,7 @@ export default function HomeScreen() {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiClient.get('/api/categories');
+      const response = await apiClient.get('/categories');
       setCategories(['all', ...response.data.categories]);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -83,7 +89,7 @@ export default function HomeScreen() {
 
   const addToCart = async (productId: string) => {
     try {
-      await apiClient.post('/api/cart/add', {
+      await apiClient.post('/cart/add', {
         product_id: productId,
         quantity: 1,
       });
@@ -101,7 +107,11 @@ export default function HomeScreen() {
   };
 
   const renderProduct = ({ item }: { item: Product }) => (
-    <View style={styles.productCard}>
+    <TouchableOpacity
+      style={styles.productCard}
+      onPress={() => setSelectedProduct(item)}
+      activeOpacity={0.7}
+    >
       <View style={styles.imageContainer}>
         <Image
           source={{ uri: item.image }}
@@ -135,7 +145,10 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity
             style={[styles.addButton, item.stock === 0 && styles.addButtonDisabled]}
-            onPress={() => addToCart(item.id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              addToCart(item.id);
+            }}
             disabled={item.stock === 0}
             activeOpacity={0.7}
           >
@@ -143,7 +156,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -156,6 +169,64 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Product Details Modal */}
+      {selectedProduct && (
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedProduct(null)}
+        >
+          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalImageContainer}>
+              <Image
+                source={{ uri: selectedProduct.image }}
+                style={styles.modalImage}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setSelectedProduct(null)}
+              >
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalDetails}>
+              <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
+              <Text style={styles.modalBrand}>{selectedProduct.brand}</Text>
+              <Text style={styles.modalPrice}>${selectedProduct.price.toFixed(2)}</Text>
+              <Text style={styles.modalStock}>
+                {selectedProduct.stock > 0
+                  ? `${selectedProduct.stock} ${selectedProduct.unit} in stock`
+                  : 'Out of stock'}
+              </Text>
+              <Text style={styles.modalVariant}>
+                Variant: {selectedProduct.variant}
+              </Text>
+              <Text style={styles.modalDescription}>{selectedProduct.description}</Text>
+              {selectedProduct.code && (
+                <Text style={styles.modalCode}>Product Code: {selectedProduct.code}</Text>
+              )}
+              {selectedProduct.barcode && (
+                <Text style={styles.modalCode}>Barcode: {selectedProduct.barcode}</Text>
+              )}
+              <TouchableOpacity
+                style={[
+                  styles.modalAddButton,
+                  selectedProduct.stock === 0 && styles.addButtonDisabled,
+                ]}
+                onPress={() => {
+                  addToCart(selectedProduct.id);
+                  setSelectedProduct(null);
+                }}
+                disabled={selectedProduct.stock === 0}
+              >
+                <Text style={styles.modalAddButtonText}>Add to Cart</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Hi, {user?.name?.split(' ')[0]}! 👋</Text>
@@ -226,6 +297,97 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '90%',
+    overflow: 'hidden',
+  },
+  modalImageContainer: {
+    width: '100%',
+    height: 300,
+    position: 'relative',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalDetails: {
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  modalBrand: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 12,
+  },
+  modalPrice: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  modalStock: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+  },
+  modalVariant: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#444',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  modalCode: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+  },
+  modalAddButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  modalAddButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,

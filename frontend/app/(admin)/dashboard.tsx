@@ -3,15 +3,16 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../utils/axios';
 import { useAuthStore } from '../../store/authStore';
+import { useRouter } from 'expo-router';
 
 interface Stats {
   total_products: number;
@@ -26,6 +27,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const user = useAuthStore((state) => state.user);
+  const router = useRouter();
 
   useEffect(() => {
     fetchStats();
@@ -33,7 +35,7 @@ export default function DashboardScreen() {
 
   const fetchStats = async () => {
     try {
-      const response = await apiClient.get('/api/admin/stats');
+      const response = await apiClient.get('/admin/stats');
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -114,19 +116,19 @@ export default function DashboardScreen() {
         <View style={styles.quickActions}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/(admin)/products')}>
               <Ionicons name="add-circle" size={24} color="#007AFF" />
               <Text style={styles.actionText}>Add Product</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/(admin)/orders')}>
               <Ionicons name="list" size={24} color="#FF9500" />
               <Text style={styles.actionText}>View Orders</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/(admin)/delivery-zones')}>
               <Ionicons name="map" size={24} color="#34C759" />
               <Text style={styles.actionText}>Delivery Zones</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/(admin)/profile')}>
               <Ionicons name="settings" size={24} color="#5856D6" />
               <Text style={styles.actionText}>Settings</Text>
             </TouchableOpacity>
@@ -169,11 +171,12 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
+    marginHorizontal: -7,
     marginBottom: 16,
+    justifyContent: 'center',
   },
   statCard: {
-    width: '47%',
+    width: '45%',
     margin: 8,
     padding: 20,
     borderRadius: 16,
@@ -238,14 +241,15 @@ const styles = StyleSheet.create({
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
+    marginHorizontal: -43,
+    justifyContent: 'center',
   },
   actionButton: {
-    width: '47%',
+    width: '40%',
     backgroundColor: '#fff',
     margin: 8,
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 15,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

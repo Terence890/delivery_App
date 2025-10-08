@@ -35,7 +35,24 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email.toLowerCase().trim(), password);
-      console.log('Login successful, waiting for navigation...');
+      console.log('Login successful, navigating...');
+      // Manually trigger navigation after successful login
+      const user = useAuthStore.getState().user;
+      if (user) {
+        switch (user.role) {
+          case 'customer':
+            router.replace('/(customer)/home');
+            break;
+          case 'delivery_agent':
+            router.replace('/(delivery)/orders');
+            break;
+          case 'admin':
+            router.replace('/(admin)/dashboard');
+            break;
+          default:
+            router.replace('/login');
+        }
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       Alert.alert('Login Failed', error.message || 'An error occurred during login');

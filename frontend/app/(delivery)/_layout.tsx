@@ -13,7 +13,7 @@ export default function DeliveryLayout() {
           borderTopColor: '#f0f0f0',
           paddingBottom: 8,
           paddingTop: 8,
-          height: 60,
+          height: 90,
         },
       }}
     >
@@ -32,6 +32,15 @@ export default function DeliveryLayout() {
           title: 'Active',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bicycle" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map" size={size} color={color} />
           ),
         }}
       />

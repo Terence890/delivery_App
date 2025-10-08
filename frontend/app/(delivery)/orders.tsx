@@ -42,7 +42,7 @@ export default function DeliveryOrdersScreen() {
 
   const fetchOrders = async () => {
     try {
-      const response = await apiClient.get('/api/orders');
+      const response = await apiClient.get('/orders');
       // Filter only confirmed orders that are not assigned yet
       const availableOrders = response.data.filter(
         (order: Order) => order.status === 'confirmed' && !order.delivery_agent_id
@@ -63,7 +63,7 @@ export default function DeliveryOrdersScreen() {
 
   const acceptOrder = async (orderId: string) => {
     try {
-      await apiClient.post(`/api/orders/${orderId}/accept`);
+      await apiClient.post(`/orders/${orderId}/accept`);
       Alert.alert('Success', 'Order accepted! Check Active tab.');
       fetchOrders();
     } catch (error: any) {
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 16,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },

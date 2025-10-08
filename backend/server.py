@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import bcrypt
+import httpx # Import httpx for making async HTTP requests
 
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
@@ -92,19 +93,29 @@ class TokenResponse(BaseModel):
 class Product(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
+    brand: str
     description: str
     price: float
     category: str
     stock: int
+    unit: str
+    variant: str
+    code: Optional[str] = None
+    barcode: Optional[str] = None
     image: str  # base64 encoded
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ProductCreate(BaseModel):
     name: str
+    brand: str
     description: str
     price: float
     category: str
     stock: int
+    unit: str
+    variant: str
+    code: Optional[str] = None
+    barcode: Optional[str] = None
     image: str
 
 class CartItem(BaseModel):
@@ -545,6 +556,48 @@ async def assign_agent_to_zone(zone_id: str, agent_id: str, current_user: UserRe
     )
     
     return {"message": "Agent assigned to zone"}
+
+# ============= ROUTING ROUTES =============
+
+class Waypoint(BaseModel):
+    latitude: float
+    longitude: float
+
+@api_router.post("/route/optimize")
+async def optimize_route(waypoints: List[Waypoint], current_user: UserResponse = Depends(require_role([UserRole.DELIVERY_AGENT, UserRole.ADMIN]))):
+    if not waypoints or len(waypoints) < 2:
+        raise HTTPException(status_code=400, detail="At least two waypoints are required for routing.")
+
+    # Format waypoints for OSRM API
+    osrm_waypoints = ";".join([f"{wp.longitude},{wp.latitude}" for wp in waypoints])
+    osrm_url = f"http://router.project-osrm.org/route/v1/driving/{osrm_waypoints}?geometries=geojson&overview=full"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(osrm_url)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            osrm_data = response.json()
+
+        if osrm_data.get("routes") and len(osrm_data["routes"]) > 0:
+            route_geometry = osrm_data["routes"][0]["geometry"]["coordinates"]
+            # OSRM returns [longitude, latitude], convert to [latitude, longitude]
+            route_coordinates = [{
+                "latitude": coord[1],
+                "longitude": coord[0]
+            } for coord in route_geometry]
+            return {"route": route_coordinates}
+        else:
+            raise HTTPException(status_code=404, detail="No route found for the given waypoints.")
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"OSRM HTTP error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"Routing service error: {e.response.text}")
+    except httpx.RequestError as e:
+        logger.error(f"OSRM request error: {e}")
+        raise HTTPException(status_code=503, detail=f"Could not connect to routing service: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected routing error: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred during routing.")
 
 # ============= ADMIN STATS =============
 

@@ -10,7 +10,7 @@ import sys
 from typing import Dict, Any, Optional
 
 # Configuration
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "https://super-duper-pancake-jj45gpqvgrg6h79-8000.app.github.dev/"
 HEADERS = {"Content-Type": "application/json"}
 
 # Test accounts (as provided in review request)
@@ -409,7 +409,7 @@ class APITester:
         print(f"Base URL: {BASE_URL}")
         
         # Run tests in order
-        self.register_test_users()
+        # self.register_test_users()
         self.test_authentication()
         self.test_products()
         self.test_cart_flow()

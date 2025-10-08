@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../utils/axios';
 import { format } from 'date-fns';
+import { useRouter } from 'expo-router';
 
 interface Order {
   id: string;
@@ -49,6 +50,7 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetchOrders();
@@ -56,7 +58,7 @@ export default function OrdersScreen() {
 
   const fetchOrders = async () => {
     try {
-      const response = await apiClient.get('/api/orders');
+      const response = await apiClient.get('/orders');
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -75,6 +77,7 @@ export default function OrdersScreen() {
     const isExpanded = expandedOrder === item.id;
     const statusColor = statusColors[item.status] || '#999';
     const statusIcon = statusIcons[item.status] || 'help-circle-outline';
+    const isTrackable = ['preparing', 'out_for_delivery'].includes(item.status);
 
     return (
       <TouchableOpacity
@@ -124,6 +127,16 @@ export default function OrdersScreen() {
                 </View>
               ))}
             </View>
+
+            {isTrackable && (
+              <TouchableOpacity
+                style={styles.trackButton}
+                onPress={() => router.push({ pathname: '/(customer)/map', params: { orderId: item.id } })}
+              >
+                <Ionicons name="map-outline" size={20} color="#fff" />
+                <Text style={styles.trackButtonText}>Track Order</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -259,12 +272,27 @@ const styles = StyleSheet.create({
   },
   orderDetails: {
     marginTop: 12,
-    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
+    paddingTop: 12,
+  },
+  trackButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  trackButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   detailSection: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   detailLabel: {
     fontSize: 12,

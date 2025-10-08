@@ -39,8 +39,17 @@ export default function AdminLayout() {
         name="orders"
         options={{
           title: 'Orders',
-          tabBarIcon: ({ color, size}) => (
+          tabBarIcon: ({ color, size }) => (
             <Ionicons name="receipt" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="delivery-zones"
+        options={{
+          title: 'Delivery Zones',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map" size={size} color={color} />
           ),
         }}
       />
