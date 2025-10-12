@@ -120,7 +120,7 @@ export default function CartScreen() {
 
     Alert.alert(
       'Confirm Order',
-      `Total: $${calculateTotal().toFixed(2)}\nDelivery to: ${deliveryAddress}`,
+      `Total: ₹${calculateTotal().toFixed(2)}\nDelivery to: ${deliveryAddress}`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -164,7 +164,7 @@ export default function CartScreen() {
       />
       <View style={styles.itemDetails}>
         <Text style={styles.itemName}>{item.product.name}</Text>
-        <Text style={styles.itemPrice}>${item.product.price.toFixed(2)}</Text>
+        <Text style={styles.itemPrice}>₹{item.product.price.toFixed(2)}</Text>
         <View style={styles.quantityContainer}>
           <TouchableOpacity
             style={styles.quantityButton}
@@ -247,7 +247,7 @@ export default function CartScreen() {
             </View>
             <View style={styles.totalContainer}>
               <Text style={styles.totalText}>Total:</Text>
-              <Text style={styles.totalAmount}>${calculateTotal().toFixed(2)}</Text>
+              <Text style={styles.totalAmount}>₹{calculateTotal().toFixed(2)}</Text>
             </View>
 
             <TouchableOpacity

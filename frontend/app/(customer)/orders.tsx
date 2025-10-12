@@ -104,7 +104,7 @@ export default function OrdersScreen() {
 
         <View style={styles.orderAmount}>
           <Text style={styles.amountLabel}>Total Amount:</Text>
-          <Text style={styles.amountValue}>${item.total_amount.toFixed(2)}</Text>
+          <Text style={styles.amountValue}>₹{item.total_amount.toFixed(2)}</Text>
         </View>
 
         {isExpanded && (
@@ -122,7 +122,7 @@ export default function OrdersScreen() {
                     {orderItem.quantity}x {orderItem.product_name}
                   </Text>
                   <Text style={styles.orderItemPrice}>
-                    ${(orderItem.price * orderItem.quantity).toFixed(2)}
+                    ₹{(orderItem.price * orderItem.quantity).toFixed(2)}
                   </Text>
                 </View>
               ))}

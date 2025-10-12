@@ -106,7 +106,7 @@ export default function OrdersScreen() {
             </Text>
           </View>
           <View>
-            <Text style={styles.amount}>${item.total_amount.toFixed(2)}</Text>
+            <Text style={styles.amount}>₹{item.total_amount.toFixed(2)}</Text>
             <View
               style={[
                 styles.statusBadge,
@@ -139,7 +139,7 @@ export default function OrdersScreen() {
                     {orderItem.quantity}x {orderItem.product_name}
                   </Text>
                   <Text style={styles.itemPrice}>
-                    ${(orderItem.price * orderItem.quantity).toFixed(2)}
+                    ₹{(orderItem.price * orderItem.quantity).toFixed(2)}
                   </Text>
                 </View>
               ))}

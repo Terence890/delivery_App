@@ -30,61 +30,75 @@ interface Product {
   image: string;
 }
 
+const categoryData = [
+  { name: 'all', icon: 'apps-outline' as const },
+  { name: 'drinks', icon: 'cafe-outline' as const },
+  { name: 'enterprise', icon: 'briefcase-outline' as const },
+  { name: 'snacks', icon: 'fast-food-outline' as const },
+  { name: 'sweets', icon: 'ice-cream-outline' as const },
+  { name: 'oil', icon: 'water-outline' as const },
+  { name: 'dairy products', icon: 'egg-outline' as const },
+];
+
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
+    fetchProducts(true);
   }, []);
 
   useEffect(() => {
-    filterProducts();
-  }, [products, selectedCategory, searchQuery]);
+    // When category or search query changes, reset products and fetch from page 1
+    if (!loading) { // Avoid fetching on initial mount
+      fetchProducts(true);
+    }
+  }, [selectedCategory, searchQuery]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (reset = false) => {
+    if (loadingMore) return;
+
+    const currentPage = reset ? 1 : page;
+    
+    // Don't fetch if we've already loaded all products
+    if (!reset && products.length >= totalProducts) {
+      return;
+    }
+
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const response = await apiClient.get('/products');
-      setProducts(response.data);
+      const params = {
+        page: currentPage,
+        limit: 20,
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+      };
+      // Note: Backend search needs to be implemented for searchQuery to work here
+      const response = await apiClient.get('/products', { params });
+      
+      const newProducts = response.data.products || [];
+      setProducts(prev => reset ? newProducts : [...prev, ...newProducts]);
+      setTotalProducts(response.data.total || 0);
+      setPage(currentPage + 1);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await apiClient.get('/categories');
-      setCategories(['all', ...response.data.categories]);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  const filterProducts = () => {
-    let filtered = products;
-
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    setFilteredProducts(filtered);
   };
 
   const addToCart = async (productId: string) => {
@@ -102,8 +116,8 @@ export default function HomeScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchProducts();
-    fetchCategories();
+    setPage(1);
+    fetchProducts(true);
   };
 
   const renderProduct = ({ item }: { item: Product }) => (
@@ -138,7 +152,7 @@ export default function HomeScreen() {
         </Text>
         <View style={styles.productFooter}>
           <View>
-            <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+            <Text style={styles.productPrice}>₹{item.price.toFixed(2)}</Text>
             <Text style={styles.productStock}>
               {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
             </Text>
@@ -193,7 +207,7 @@ export default function HomeScreen() {
             <View style={styles.modalDetails}>
               <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
               <Text style={styles.modalBrand}>{selectedProduct.brand}</Text>
-              <Text style={styles.modalPrice}>${selectedProduct.price.toFixed(2)}</Text>
+              <Text style={styles.modalPrice}>₹{selectedProduct.price.toFixed(2)}</Text>
               <Text style={styles.modalStock}>
                 {selectedProduct.stock > 0
                   ? `${selectedProduct.stock} ${selectedProduct.unit} in stock`
@@ -249,24 +263,30 @@ export default function HomeScreen() {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={categories}
-          keyExtractor={(item) => item}
+          data={categoryData}
+          keyExtractor={(item) => item.name}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
                 styles.categoryChip,
-                selectedCategory === item && styles.categoryChipActive,
+                selectedCategory === item.name && styles.categoryChipActive,
               ]}
-              onPress={() => setSelectedCategory(item)}
+              onPress={() => setSelectedCategory(item.name)}
               activeOpacity={0.7}
             >
+              <Ionicons
+                name={item.icon}
+                size={20}
+                color={selectedCategory === item.name ? '#fff' : '#666'}
+                style={styles.categoryIcon}
+              />
               <Text
                 style={[
                   styles.categoryChipText,
-                  selectedCategory === item && styles.categoryChipTextActive,
+                  selectedCategory === item.name && styles.categoryChipTextActive,
                 ]}
               >
-                {item.charAt(0).toUpperCase() + item.slice(1)}
+                {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
               </Text>
             </TouchableOpacity>
           )}
@@ -274,7 +294,7 @@ export default function HomeScreen() {
       </View>
 
       <FlatList
-        data={filteredProducts}
+        data={products} // Use products directly, not filteredProducts
         renderItem={renderProduct}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -282,11 +302,16 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        onEndReached={() => fetchProducts()}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={loadingMore ? <ActivityIndicator size="large" color="#007AFF" style={{ marginVertical: 20 }} /> : null}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No products found</Text>
-          </View>
+          !loading && (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cube-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>No products found</Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -439,6 +464,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
@@ -460,6 +487,9 @@ const styles = StyleSheet.create({
   },
   categoryChipTextActive: {
     color: '#fff',
+  },
+  categoryIcon: {
+    marginRight: 8,
   },
   productList: {
     paddingHorizontal: 12,

@@ -105,6 +105,10 @@ class Product(BaseModel):
     image: str  # base64 encoded
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+class PaginatedProductsResponse(BaseModel):
+    total: int
+    products: List[Product]
+
 class ProductCreate(BaseModel):
     name: str
     brand: str
@@ -249,31 +253,28 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: UserResponse = Depends(get_current_user)):
     return current_user
 
-@api_router.put("/auth/profile", response_model=UserResponse)
-async def update_profile(name: str = None, phone: str = None, address: str = None, current_user: UserResponse = Depends(get_current_user)):
-    update_data = {}
-    if name:
-        update_data["name"] = name
-    if phone:
-        update_data["phone"] = phone
-    if address:
-        update_data["address"] = address
-    
-    if update_data:
-        await db.users.update_one({"id": current_user.id}, {"$set": update_data})
-        updated_user = await db.users.find_one({"id": current_user.id})
-        return UserResponse(**updated_user)
-    return current_user
-
 # ============= PRODUCT ROUTES =============
 
-@api_router.get("/products", response_model=List[Product])
-async def get_products(category: str = None):
+@api_router.get("/products", response_model=PaginatedProductsResponse)
+async def get_products(category: str = None, page: int = 1, limit: int = 20):
     query = {}
     if category:
         query["category"] = category
-    products = await db.products.find(query).to_list(1000)
-    return [Product(**p) for p in products]
+    
+    # Calculate skip value for pagination
+    skip = (page - 1) * limit
+    
+    # Get total count of products for the query
+    total_products = await db.products.count_documents(query)
+    
+    # Fetch products with pagination
+    products_cursor = db.products.find(query).skip(skip).limit(limit)
+    products = await products_cursor.to_list(length=limit)
+    
+    return PaginatedProductsResponse(
+        total=total_products,
+        products=[Product(**p) for p in products]
+    )
 
 @api_router.get("/products/{product_id}", response_model=Product)
 async def get_product(product_id: str):

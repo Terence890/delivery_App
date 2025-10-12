@@ -39,6 +39,9 @@ export default function ProductsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     brand: '',
@@ -57,21 +60,41 @@ export default function ProductsScreen() {
     fetchProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (reset = false) => {
+    if (loadingMore) return;
+
+    const currentPage = reset ? 1 : page;
+    
+    if (!reset && products.length >= totalProducts && totalProducts > 0) {
+      return;
+    }
+
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const response = await apiClient.get('/products');
-      setProducts(response.data);
+      const params = { page: currentPage, limit: 20 };
+      const response = await apiClient.get('/products', { params });
+      
+      const newProducts = response.data.products || [];
+      setProducts(prev => reset ? newProducts : [...prev, ...newProducts]);
+      setTotalProducts(response.data.total || 0);
+      setPage(currentPage + 1);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchProducts();
+    fetchProducts(true);
   };
 
   const openModal = (product?: Product) => {
@@ -187,7 +210,7 @@ export default function ProductsScreen() {
         <Text style={styles.productCategory}>{item.category}</Text>
         <View style={styles.productFooter}>
           <View>
-            <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+            <Text style={styles.productPrice}>₹{item.price.toFixed(2)}</Text>
             <Text style={styles.productStock}>Stock: {item.stock} {item.unit}</Text>
           </View>
           <View style={styles.actions}>
@@ -233,6 +256,16 @@ export default function ProductsScreen() {
         contentContainerStyle={styles.productList}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        onEndReached={() => fetchProducts()}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={loadingMore ? <ActivityIndicator size="large" color="#FF9500" style={{ marginVertical: 20 }} /> : null}
+        ListEmptyComponent={
+          !loading && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No products found. Tap the '+' button to add one.</Text>
+            </View>
+          )
         }
       />
 
@@ -355,6 +388,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',

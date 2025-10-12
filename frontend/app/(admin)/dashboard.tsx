@@ -108,7 +108,7 @@ export default function DashboardScreen() {
             <Text style={styles.revenueLabel}>Total Revenue</Text>
           </View>
           <Text style={styles.revenueValue}>
-            ${stats?.total_revenue.toFixed(2) || '0.00'}
+            ₹{stats?.total_revenue.toFixed(2) || '0.00'}
           </Text>
           <Text style={styles.revenueSubtext}>From delivered orders</Text>
         </View>
