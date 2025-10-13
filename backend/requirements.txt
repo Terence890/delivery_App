@@ -15,6 +15,7 @@ email-validator==2.3.0
 fastapi==0.110.1
 flake8==7.3.0
 h11==0.16.0
+httpx
 idna==3.10
 iniconfig==2.1.0
 isort==6.0.1
@@ -39,7 +40,7 @@ PyJWT[crypto]==2.9.0
 pymongo==4.8.0
 pyOpenSSL==24.2.1
 pytest==8.4.1
-python-dotenv==1.0.1
+python-dotenv
 python-jose==3.3.0
 python-multipart==0.0.9
 pytz==2024.1

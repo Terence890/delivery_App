@@ -62,7 +62,7 @@ export default function DeliveryHistoryScreen() {
             {format(new Date(item.created_at), 'MMM dd, yyyy HH:mm')}
           </Text>
         </View>
-        <Text style={styles.amount}>${item.total_amount.toFixed(2)}</Text>
+        <Text style={styles.amount}>₹{item.total_amount.toFixed(2)}</Text>
       </View>
       <View
         style={[
@@ -100,7 +100,7 @@ export default function DeliveryHistoryScreen() {
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>${totalEarnings.toFixed(2)}</Text>
+          <Text style={styles.statValue}>₹{totalEarnings.toFixed(2)}</Text>
           <Text style={styles.statLabel}>Earnings</Text>
         </View>
       </View>
