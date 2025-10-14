@@ -117,8 +117,8 @@ export default function HomeScreen() {
         search: debouncedSearchQuery || undefined, // Use debounced search query (backend expects 'search' parameter)
       };
       
-      // Use the enterprise API endpoints
-      const endpoint = '/api/v1/products';
+      // Use the enterprise API endpoints (baseURL already includes /api/v1)
+      const endpoint = '/products';
       const response = await apiClient.get(endpoint, { params });
       
       const newProducts = response.data.products || [];

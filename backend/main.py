@@ -43,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers with versioning
+# Include API routers (api_router already includes v1 structure)
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
