@@ -18,5 +18,5 @@ async def connect_to_mongo():
 async def close_mongo_connection():
     mongodb.client.close()
 
-def get_database():
+async def get_database():
     return mongodb.client[settings.DB_NAME]

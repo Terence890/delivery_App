@@ -51,17 +51,47 @@ export default function HomeScreen() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const user = useAuthStore((state) => state.user);
+  
+  // Debounced search query for API calls
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Filter products based on search query (for immediate UI feedback)
+  const filteredProducts = products.filter((product) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query) ||
+      product.brand.toLowerCase().includes(query)
+    );
+  });
+  
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchProducts(true);
   }, []);
 
   useEffect(() => {
-    // When category or search query changes, reset products and fetch from page 1
+    // When category changes, reset products and fetch from page 1
     if (!loading) { // Avoid fetching on initial mount
       fetchProducts(true);
     }
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory]);
+  
+  useEffect(() => {
+    // When debounced search query changes, reset products and fetch from page 1
+    if (!loading) { // Avoid fetching on initial mount
+      fetchProducts(true);
+    }
+  }, [debouncedSearchQuery]);
 
   const fetchProducts = async (reset = false) => {
     if (loadingMore) return;
@@ -84,9 +114,12 @@ export default function HomeScreen() {
         page: currentPage,
         limit: 20,
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        query: debouncedSearchQuery || undefined, // Use debounced search query
       };
-      // Note: Backend search needs to be implemented for searchQuery to work here
-      const response = await apiClient.get('/products', { params });
+      
+      // Use the new search endpoint
+      const endpoint = debouncedSearchQuery ? '/api/v1/products/search' : '/api/v1/products';
+      const response = await apiClient.get(endpoint, { params });
       
       const newProducts = response.data.products || [];
       setProducts(prev => reset ? newProducts : [...prev, ...newProducts]);
@@ -294,7 +327,7 @@ export default function HomeScreen() {
       </View>
 
       <FlatList
-        data={products} // Use products directly, not filteredProducts
+        data={filteredProducts}
         renderItem={renderProduct}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -302,14 +335,16 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        onEndReached={() => fetchProducts()}
+        onEndReached={() => !searchQuery && fetchProducts()} // Only load more if not searching
         onEndReachedThreshold={0.5}
-        ListFooterComponent={loadingMore ? <ActivityIndicator size="large" color="#007AFF" style={{ marginVertical: 20 }} /> : null}
+        ListFooterComponent={loadingMore && !searchQuery ? <ActivityIndicator size="large" color="#007AFF" style={{ marginVertical: 20 }} /> : null}
         ListEmptyComponent={
           !loading && (
             <View style={styles.emptyContainer}>
               <Ionicons name="cube-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>No products found</Text>
+              <Text style={styles.emptyText}>
+                {searchQuery ? `No products found for "${searchQuery}"` : 'No products found'}
+              </Text>
             </View>
           )
         }
