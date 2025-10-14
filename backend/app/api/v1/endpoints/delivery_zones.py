@@ -10,20 +10,20 @@ router = APIRouter()
 
 @router.get("", response_model=List[DeliveryZone])
 async def get_delivery_zones(current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     zones = await db.delivery_zones.find().to_list(1000)
     return [DeliveryZone(**z) for z in zones]
 
 @router.post("/", response_model=DeliveryZone)
 async def create_delivery_zone(zone_data: DeliveryZoneCreate, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
-    db = get_database()
+    db = await get_database()
     zone = DeliveryZone(**zone_data.dict())
     await db.delivery_zones.insert_one(zone.dict())
     return zone
 
 @router.put("/{zone_id}/assign-agent")
 async def assign_agent_to_zone(zone_id: str, agent_id: str, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
-    db = get_database()
+    db = await get_database()
     zone = await db.delivery_zones.find_one({"id": zone_id})
     if not zone:
         raise HTTPException(status_code=404, detail="Delivery zone not found")

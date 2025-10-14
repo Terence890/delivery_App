@@ -5,7 +5,7 @@ import logging
 
 from app.core.config import settings
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
-from app.api.v1.router import api_router
+from app.api.v1.api import api_router
 
 # Configure logging
 logging.basicConfig(
@@ -43,8 +43,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
-app.include_router(api_router)
+# Include API routers with versioning
+app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():

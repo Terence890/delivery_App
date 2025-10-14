@@ -8,7 +8,7 @@ router = APIRouter()
 
 @router.get("/stats")
 async def get_admin_stats(current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
-    db = get_database()
+    db = await get_database()
     total_products = await db.products.count_documents({})
     total_orders = await db.orders.count_documents({})
     total_customers = await db.users.count_documents({"role": UserRole.CUSTOMER})

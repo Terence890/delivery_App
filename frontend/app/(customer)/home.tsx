@@ -114,11 +114,11 @@ export default function HomeScreen() {
         page: currentPage,
         limit: 20,
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
-        query: debouncedSearchQuery || undefined, // Use debounced search query
+        search: debouncedSearchQuery || undefined, // Use debounced search query (backend expects 'search' parameter)
       };
       
-      // Use the new search endpoint
-      const endpoint = debouncedSearchQuery ? '/api/v1/products/search' : '/api/v1/products';
+      // Use the enterprise API endpoints
+      const endpoint = '/api/v1/products';
       const response = await apiClient.get(endpoint, { params });
       
       const newProducts = response.data.products || [];

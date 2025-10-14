@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.post("/", response_model=Order)
 async def create_order(order_data: OrderCreate, current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     # Get cart items
     cart = await db.carts.find_one({"user_id": current_user.id})
     if not cart or not cart.get('items'):
@@ -69,7 +69,7 @@ async def create_order(order_data: OrderCreate, current_user: UserResponse = Dep
 
 @router.get("", response_model=List[Order])
 async def get_orders(current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     if current_user.role == UserRole.ADMIN:
         orders = await db.orders.find().sort("created_at", -1).to_list(1000)
     elif current_user.role == UserRole.DELIVERY_AGENT:
@@ -86,7 +86,7 @@ async def get_orders(current_user: UserResponse = Depends(get_current_user)):
 
 @router.get("/{order_id}", response_model=Order)
 async def get_order(order_id: str, current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -99,7 +99,7 @@ async def get_order(order_id: str, current_user: UserResponse = Depends(get_curr
 
 @router.put("/{order_id}/status")
 async def update_order_status(order_id: str, status_update: OrderStatusUpdate, current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -117,7 +117,7 @@ async def update_order_status(order_id: str, status_update: OrderStatusUpdate, c
 
 @router.post("/{order_id}/accept")
 async def accept_order(order_id: str, current_user: UserResponse = Depends(require_role([UserRole.DELIVERY_AGENT]))):
-    db = get_database()
+    db = await get_database()
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")

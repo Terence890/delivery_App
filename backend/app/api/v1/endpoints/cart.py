@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("")
 async def get_cart(current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     cart = await db.carts.find_one({"user_id": current_user.id})
     if not cart:
         cart = Cart(user_id=current_user.id).dict()
@@ -31,7 +31,7 @@ async def get_cart(current_user: UserResponse = Depends(get_current_user)):
 
 @router.post("/add")
 async def add_to_cart(item: CartItem, current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     # Check if product exists
     product = await db.products.find_one({"id": item.product_id})
     if not product:
@@ -61,7 +61,7 @@ async def add_to_cart(item: CartItem, current_user: UserResponse = Depends(get_c
 
 @router.post("/remove/{product_id}")
 async def remove_from_cart(product_id: str, current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     cart = await db.carts.find_one({"user_id": current_user.id})
     if cart:
         items = [i for i in cart.get('items', []) if i['product_id'] != product_id]
@@ -73,7 +73,7 @@ async def remove_from_cart(product_id: str, current_user: UserResponse = Depends
 
 @router.post("/update")
 async def update_cart_item(item: CartItem, current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     cart = await db.carts.find_one({"user_id": current_user.id})
     if cart:
         items = cart.get('items', [])
@@ -89,7 +89,7 @@ async def update_cart_item(item: CartItem, current_user: UserResponse = Depends(
 
 @router.delete("/clear")
 async def clear_cart(current_user: UserResponse = Depends(get_current_user)):
-    db = get_database()
+    db = await get_database()
     await db.carts.update_one(
         {"user_id": current_user.id},
         {"$set": {"items": [], "updated_at": datetime.utcnow()}}

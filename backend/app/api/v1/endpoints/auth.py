@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
-    db = get_database()
+    db = await get_database()
     try:
         # Check if user exists
         existing_user = await db.users.find_one({"email": user_data.email})
@@ -39,7 +39,7 @@ async def register(user_data: UserCreate):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    db = get_database()
+    db = await get_database()
     user = await db.users.find_one({"email": credentials.email})
     if not user or not verify_password(credentials.password, user['password']):
         raise HTTPException(status_code=401, detail="Invalid email or password")
