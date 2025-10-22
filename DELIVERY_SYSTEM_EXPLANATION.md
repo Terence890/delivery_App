@@ -24,7 +24,9 @@ The delivery system in this application has several components working together:
 ### 1. Customer Delivery Zone Validation
 When a customer places an order, the system now:
 
-1. **Extracts coordinates** from the delivery address
+1. **Extracts coordinates** from either:
+   - Directly from Expo location services (preferred)
+   - From the address string (in format "lat,lng: 13.1056,77.5951")
 2. **Checks if the coordinates are within any active delivery zone**
 3. **Allows or rejects the order** based on zone availability
 
@@ -109,7 +111,9 @@ db.delivery_zones.find({
 ### 1. Address Processing
 When a customer enters a delivery address, the system:
 
-1. **Extracts coordinates** from the address (in format "lat,lng: 13.1056,77.5951")
+1. **Extracts coordinates** from either:
+   - Directly from Expo location services (preferred)
+   - From the address string (in format "lat,lng: 13.1056,77.5951")
 2. **Queries MongoDB** to find which zone contains those coordinates
 3. **Allows order** if a zone is found, **rejects** if not
 
@@ -147,7 +151,20 @@ Any delivery address with coordinates within this polygon will be accepted for d
 
 ## API Usage Examples
 
-### Creating an Order with Valid Address
+### Creating an Order with Coordinates from Expo Location
+```json
+// POST /api/v1/orders
+{
+  "items": [...],
+  "delivery_address": "123 Main Street, Bangalore",
+  "delivery_coordinates": {
+    "latitude": 13.1000,
+    "longitude": 77.5900
+  }
+}
+```
+
+### Creating an Order with Address Containing Coordinates
 ```json
 // POST /api/v1/orders
 {
@@ -156,16 +173,63 @@ Any delivery address with coordinates within this polygon will be accepted for d
 }
 ```
 
-### Creating an Order with Invalid Address
+### Creating an Order with Invalid Address/Coordinates
 ```json
 // POST /api/v1/orders
 {
   "items": [...],
-  "delivery_address": "123 Outside Street, Outside City lat,lng: 12.0000,77.0000"
+  "delivery_address": "123 Outside Street, Outside City",
+  "delivery_coordinates": {
+    "latitude": 12.0000,
+    "longitude": 77.0000
+  }
 }
 // Response: 400 Bad Request
 // {"detail": "Delivery not available for this address. The location is outside all delivery zones."}
 ```
+
+## Required Address Format
+
+For the delivery zone validation to work, delivery addresses must include coordinates in one of these formats:
+
+1. **Preferred method (from Expo location)**:
+   ```json
+   {
+     "delivery_address": "Street Address, City Name",
+     "delivery_coordinates": {
+       "latitude": 13.1056,
+       "longitude": 77.5951
+     }
+   }
+   ```
+
+2. **Fallback method (embedded in address string)**:
+   ```
+   "Street Address, City Name lat,lng: 13.1056,77.5951"
+   ```
+
+Where:
+- `13.1056` is the latitude
+- `77.5951` is the longitude
+
+In a production environment, you would integrate with a geocoding service (like Google Maps Geocoding API) to automatically convert street addresses to coordinates when neither method is available.
+
+## Frontend Integration with Expo Location
+
+The frontend has been updated to integrate with Expo location services:
+
+1. **Location Permission**: The app requests location permissions from the user
+2. **Current Location**: Users can fetch their current location using GPS
+3. **Reverse Geocoding**: The app converts coordinates to readable addresses
+4. **Coordinate Storage**: Coordinates are stored separately and sent with order requests
+5. **Fallback Handling**: If location services fail, the app falls back to manual address entry
+
+### Implementation in Cart Screen
+The cart screen now includes:
+- A "Use Current Location" button that fetches GPS coordinates
+- Automatic address population from GPS data
+- Storage of coordinates for order placement
+- Integration with the backend API to send coordinates with orders
 
 ## Benefits of This Implementation
 
@@ -175,6 +239,8 @@ Any delivery address with coordinates within this polygon will be accepted for d
 4. **Scalability**: Easy to add new zones and agents as the business grows
 5. **Performance**: MongoDB geospatial indexes enable fast location queries
 6. **Data Integrity**: Orders are only created for deliverable addresses
+7. **Flexibility**: Supports both Expo location services and manual coordinate entry
+8. **User Experience**: Seamless location integration with fallback options
 
 ## Future Enhancements
 
@@ -182,3 +248,5 @@ Any delivery address with coordinates within this polygon will be accepted for d
 2. **Dynamic Zone Management**: Enable/disable zones based on business needs
 3. **Real-time Agent Tracking**: Show live agent locations to customers
 4. **Advanced Routing**: Consider traffic, time windows, and delivery priorities
+5. **Location History**: Store user's frequently used locations
+6. **Address Autocomplete**: Integrate with address autocomplete services

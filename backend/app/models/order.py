@@ -26,6 +26,7 @@ class Order(BaseModel):
 class OrderCreate(BaseModel):
     items: List[dict]  # Use dict here to avoid circular dependency with CartItem
     delivery_address: str
+    delivery_coordinates: Optional[dict] = None  # {latitude: float, longitude: float}
 
 class OrderStatusUpdate(BaseModel):
     status: str
