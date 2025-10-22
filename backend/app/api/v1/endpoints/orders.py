@@ -11,7 +11,7 @@ from app.services.geospatial_service import get_zone_for_location, extract_coord
 
 router = APIRouter()
 
-@router.post("/", response_model=Order)
+@router.post("", response_model=Order)
 async def create_order(order_data: OrderCreate, current_user: UserResponse = Depends(get_current_user)):
     db = await get_database()
     
@@ -21,13 +21,28 @@ async def create_order(order_data: OrderCreate, current_user: UserResponse = Dep
         raise HTTPException(status_code=400, detail="Cart is empty")
     
     # Validate delivery address is within a delivery zone
-    coordinates = extract_coordinates_from_address(order_data.delivery_address)
-    if not coordinates:
-        # In a real implementation, we would use a geocoding service here
-        raise HTTPException(
-            status_code=400, 
-            detail="Could not extract coordinates from delivery address. Please include coordinates in format 'lat,lng: 13.1056,77.5951'"
-        )
+    coordinates = None
+    
+    # Check if coordinates are provided directly (from Expo location)
+    if order_data.delivery_coordinates and 'latitude' in order_data.delivery_coordinates and 'longitude' in order_data.delivery_coordinates:
+        try:
+            latitude = float(order_data.delivery_coordinates['latitude'])
+            longitude = float(order_data.delivery_coordinates['longitude'])
+            coordinates = (latitude, longitude)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid delivery coordinates format. Latitude and longitude must be numeric."
+            )
+    else:
+        # Extract coordinates from address string (fallback method)
+        coordinates = extract_coordinates_from_address(order_data.delivery_address)
+        if not coordinates:
+            # In a real implementation, we would use a geocoding service here
+            raise HTTPException(
+                status_code=400, 
+                detail="Could not extract coordinates from delivery address. Please include coordinates in format 'lat,lng: 13.1056,77.5951' at the end of the address or provide delivery_coordinates object"
+            )
     
     latitude, longitude = coordinates
     zone = await get_zone_for_location(db, longitude, latitude)

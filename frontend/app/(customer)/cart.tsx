@@ -35,6 +35,7 @@ export default function CartScreen() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [locationCoordinates, setLocationCoordinates] = useState<{latitude: number; longitude: number} | null>(null);
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
@@ -62,6 +63,11 @@ export default function CartScreen() {
         const { street, city, region, postalCode, country } = address[0];
         const formattedAddress = `${street}, ${city}, ${region} ${postalCode}, ${country}`;
         setDeliveryAddress(formattedAddress);
+        // Store coordinates for order placement
+        setLocationCoordinates({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        });
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -128,16 +134,26 @@ export default function CartScreen() {
           onPress: async () => {
             setCheckoutLoading(true);
             try {
-              await apiClient.post('/orders', {
+              // Prepare order data with coordinates if available
+              const orderData: any = {
                 items: cartItems.map((item) => ({
                   product_id: item.product_id,
                   quantity: item.quantity,
                 })),
                 delivery_address: deliveryAddress,
-              });
+              };
+              
+              // Add coordinates if we have them from Expo location
+              if (locationCoordinates) {
+                orderData.delivery_coordinates = locationCoordinates;
+              }
+              
+              await apiClient.post('/orders', orderData);
               Alert.alert('Success', 'Order placed successfully!', [
                 { text: 'OK', onPress: () => router.push('/(customer)/orders') },
               ]);
+              // Reset location coordinates after successful order
+              setLocationCoordinates(null);
               fetchCart();
             } catch (error: any) {
               console.error('Error placing order:', error);
