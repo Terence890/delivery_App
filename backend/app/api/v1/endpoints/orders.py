@@ -1,15 +1,80 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from datetime import datetime
+import httpx
 
 from app.db.mongodb import get_database
 from app.models.order import Order, OrderCreate, OrderStatusUpdate, OrderItem
 from app.models.product import Product
 from app.models.user import UserResponse, UserRole
+from app.models.route import Waypoint
 from app.core.security import require_role, get_current_user
 from app.services.geospatial_service import get_zone_for_location, extract_coordinates_from_address
 
 router = APIRouter()
+
+# Average delivery speed in km/h
+AVERAGE_DELIVERY_SPEED = 30  # Adjust based on your requirements
+
+def calculate_distance(coord1: dict, coord2: dict) -> float:
+    """
+    Calculate the approximate distance between two coordinates using the haversine formula.
+    Returns distance in kilometers.
+    """
+    import math
+    
+    # Earth's radius in kilometers
+    R = 6371.0
+    
+    lat1_rad = math.radians(coord1['latitude'])
+    lon1_rad = math.radians(coord1['longitude'])
+    lat2_rad = math.radians(coord2['latitude'])
+    lon2_rad = math.radians(coord2['longitude'])
+    
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    
+    a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    distance = R * c
+    return distance
+
+def estimate_delivery_time(distance_km: float, speed_kmh: float = AVERAGE_DELIVERY_SPEED) -> dict:
+    """
+    Estimate delivery time based on distance and speed.
+    Returns a dictionary with estimated time and formatted string.
+    """
+    if distance_km <= 0:
+        return {
+            "minutes": 5,
+            "formatted": "5 minutes or less"
+        }
+    
+    # Calculate time in hours
+    time_hours = distance_km / speed_kmh
+    
+    # Convert to minutes
+    time_minutes = int(time_hours * 60)
+    
+    # Ensure minimum time of 5 minutes
+    time_minutes = max(time_minutes, 5)
+    
+    # Format the time string
+    if time_minutes < 60:
+        formatted_time = f"{time_minutes} minutes"
+    else:
+        hours = time_minutes // 60
+        minutes = time_minutes % 60
+        if minutes == 0:
+            formatted_time = f"{hours} hour{'s' if hours > 1 else ''}"
+        else:
+            formatted_time = f"{hours} hour{'s' if hours > 1 else ''} and {minutes} minute{'s' if minutes > 1 else ''}"
+    
+    return {
+        "minutes": time_minutes,
+        "formatted": formatted_time
+    }
 
 @router.post("", response_model=Order)
 async def create_order(order_data: OrderCreate, current_user: UserResponse = Depends(get_current_user)):
@@ -81,7 +146,24 @@ async def create_order(order_data: OrderCreate, current_user: UserResponse = Dep
             {"$inc": {"stock": -cart_item['quantity']}}
         )
     
-    # Create order with delivery location
+    # Calculate estimated delivery time
+    estimated_time = None
+    try:
+        # Get the delivery agent's location (for demo purposes, we'll use a fixed point)
+        # In a real implementation, you would get the actual agent's location
+        agent_location = {"latitude": 13.1056, "longitude": 77.5951}  # Example agent location
+        customer_location = {"latitude": latitude, "longitude": longitude}
+        
+        # Calculate distance between agent and customer
+        distance = calculate_distance(agent_location, customer_location)
+        
+        # Estimate delivery time
+        estimated_time = estimate_delivery_time(distance)
+    except Exception as e:
+        # If there's an error calculating ETA, we'll just leave it as None
+        print(f"Error calculating estimated delivery time: {e}")
+    
+    # Create order with delivery location and estimated time
     order = Order(
         user_id=current_user.id,
         user_name=current_user.name,
@@ -92,7 +174,8 @@ async def create_order(order_data: OrderCreate, current_user: UserResponse = Dep
         delivery_location={
             "latitude": latitude,
             "longitude": longitude
-        }
+        },
+        estimated_delivery_time=estimated_time
     )
     
     await db.orders.insert_one(order.dict())

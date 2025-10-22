@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -25,6 +26,7 @@ interface Order {
   delivery_location?: { latitude: number; longitude: number };
   status: string;
   delivery_agent_id?: string;
+  estimated_delivery_time?: { minutes: number; formatted: string };
 }
 
 interface AgentLocation {
@@ -39,6 +41,7 @@ export default function CustomerOrderMapScreen() {
   const [deliveryLocation, setDeliveryLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [agentLocation, setAgentLocation] = useState<AgentLocation | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId) {
@@ -59,6 +62,11 @@ export default function CustomerOrderMapScreen() {
       const fetchedOrder: Order = response.data;
       setOrder(fetchedOrder);
 
+      // Set estimated delivery time if available
+      if (fetchedOrder.estimated_delivery_time) {
+        setEstimatedDeliveryTime(fetchedOrder.estimated_delivery_time.formatted);
+      }
+
       // Get delivery location coordinates
       if (fetchedOrder.delivery_location) {
         setDeliveryLocation(fetchedOrder.delivery_location);
@@ -69,9 +77,7 @@ export default function CustomerOrderMapScreen() {
         }
       }
 
-      // Fetch agent location if order is out for delivery (conceptual)
-      // In a real app, you'd have a backend endpoint to get the agent's real-time location.
-      // For now, we'll simulate or use a static location if available.
+      // Fetch agent location if order is out for delivery
       if (fetchedOrder.status === 'out_for_delivery' && fetchedOrder.delivery_agent_id) {
         // Example: Fetch agent's last known location from backend
         // const agentLocResponse = await apiClient.get(`/agents/${fetchedOrder.delivery_agent_id}/location`);
@@ -86,23 +92,35 @@ export default function CustomerOrderMapScreen() {
       }
 
       // Fetch route if both agent and delivery locations are available
-      if (agentLocation && deliveryLocation) {
+      if (fetchedOrder.delivery_location) {
         try {
+          // For demo purposes, we'll use a fixed agent location
+          // In a real app, you would get the actual agent's location
+          const agentLoc = { latitude: 13.1056, longitude: 77.5951 };
           const waypoints = [
-            { latitude: agentLocation.latitude, longitude: agentLocation.longitude },
-            { latitude: deliveryLocation.latitude, longitude: deliveryLocation.longitude },
+            { latitude: agentLoc.latitude, longitude: agentLoc.longitude },
+            { latitude: fetchedOrder.delivery_location.latitude, longitude: fetchedOrder.delivery_location.longitude },
           ];
+          
           const routeResponse = await apiClient.post('/route/optimize', waypoints);
           if (routeResponse.data && routeResponse.data.route) {
             setRouteCoordinates(routeResponse.data.route);
+            
+            // Update estimated delivery time from route optimization if available
+            if (routeResponse.data.estimated_delivery_time) {
+              setEstimatedDeliveryTime(routeResponse.data.estimated_delivery_time.formatted);
+            }
           }
         } catch (routingError) {
           console.error('Error fetching customer route:', routingError);
           // Fallback to straight line
-          setRouteCoordinates([
-            { latitude: agentLocation.latitude, longitude: agentLocation.longitude },
-            { latitude: deliveryLocation.latitude, longitude: deliveryLocation.longitude },
-          ]);
+          if (fetchedOrder.delivery_location) {
+            const agentLoc = { latitude: 13.1056, longitude: 77.5951 };
+            setRouteCoordinates([
+              { latitude: agentLoc.latitude, longitude: agentLoc.longitude },
+              { latitude: fetchedOrder.delivery_location.latitude, longitude: fetchedOrder.delivery_location.longitude },
+            ]);
+          }
         }
       }
 
@@ -132,6 +150,15 @@ export default function CustomerOrderMapScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Estimated Delivery Time Banner */}
+      {estimatedDeliveryTime && (
+        <View style={styles.etaBanner}>
+          <Text style={styles.etaText}>
+            Estimated Delivery: {estimatedDeliveryTime}
+          </Text>
+        </View>
+      )}
+      
       <MapView
         style={styles.map}
         initialRegion={initialRegion}
@@ -181,5 +208,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
+  },
+  etaBanner: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    alignItems: 'center',
+  },
+  etaText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

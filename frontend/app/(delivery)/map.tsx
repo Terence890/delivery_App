@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -24,6 +25,7 @@ interface Order {
   user_address: string;
   delivery_location?: { latitude: number; longitude: number };
   status: string;
+  estimated_delivery_time?: { minutes: number; formatted: string };
 }
 
 export default function DeliveryMapScreen() {
@@ -31,6 +33,7 @@ export default function DeliveryMapScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [routeCoordinates, setRouteCoordinates] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const [estimatedDeliveryTimes, setEstimatedDeliveryTimes] = useState<Array<{ orderId: string; time: string }>>([]);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export default function DeliveryMapScreen() {
       );
 
       const validDestinationCoords = destinationCoords.filter(Boolean) as Array<{ latitude: number; longitude: number }>;
+      const validOrders = activeOrders.filter((order: Order) => order.delivery_location) as Order[];
 
       if (validDestinationCoords.length > 0 && currentCoords) {
         const waypoints = [
@@ -83,9 +87,22 @@ export default function DeliveryMapScreen() {
         ];
 
         try {
-          const routeResponse = await apiClient.post('/route/optimize', waypoints);
+          // Use the new optimize-with-eta endpoint for detailed information
+          const routeResponse = await apiClient.post('/route/optimize-with-eta', waypoints);
           if (routeResponse.data && routeResponse.data.route) {
             setRouteCoordinates(routeResponse.data.route);
+            
+            // Extract estimated delivery times for each order
+            if (routeResponse.data.waypoint_etas) {
+              const etas = routeResponse.data.waypoint_etas
+                .slice(1) // Skip the first waypoint (driver's location)
+                .map((eta: any, index: number) => ({
+                  orderId: validOrders[index]?.id || '',
+                  time: eta.eta ? new Date(eta.eta).toLocaleTimeString() : 'N/A'
+                }))
+                .filter((eta: any) => eta.orderId);
+              setEstimatedDeliveryTimes(etas);
+            }
           } else {
             Alert.alert('Routing Error', 'Could not get an optimized route.');
             // Fallback to straight lines if routing fails
@@ -135,6 +152,21 @@ export default function DeliveryMapScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Estimated Delivery Times Panel */}
+      {estimatedDeliveryTimes.length > 0 && (
+        <View style={styles.etaPanel}>
+          <Text style={styles.etaPanelTitle}>Estimated Delivery Times</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {estimatedDeliveryTimes.map((eta, index) => (
+              <View key={eta.orderId} style={styles.etaItem}>
+                <Text style={styles.etaOrder}>Order {index + 1}</Text>
+                <Text style={styles.etaTime}>{eta.time}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+      
       <MapView
         style={styles.map}
         initialRegion={initialRegion}
@@ -187,5 +219,33 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
+  },
+  etaPanel: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  etaPanelTitle: {
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#333',
+  },
+  etaItem: {
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 8,
+    marginRight: 10,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  etaOrder: {
+    fontSize: 12,
+    color: '#666',
+  },
+  etaTime: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#007AFF',
   },
 });

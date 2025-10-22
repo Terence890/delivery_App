@@ -37,12 +37,12 @@ When an order is placed:
 2. **Selects an available agent** from that zone
 3. **Assigns the order** to the agent
 
-### 3. Route Optimization
-For delivery agents:
+### 3. Route Optimization with Estimated Delivery Times
+For delivery agents and customers:
 
-1. **Collects all delivery locations** for their assigned orders
-2. **Sends waypoints to OSRM** for route optimization
-3. **Displays the optimized route** in the agent's app
+1. **Calculates optimized routes** using OSRM for efficient delivery paths
+2. **Estimates delivery times** based on distance and average speed
+3. **Provides real-time ETA information** to both agents and customers
 
 ## Implementation Details
 
@@ -84,6 +84,10 @@ For delivery agents:
     "latitude": 13.1056,
     "longitude": 77.5951
   },
+  "estimated_delivery_time": {
+    "minutes": 30,
+    "formatted": "30 minutes"
+  },
   "delivery_agent_id": "agent-uuid",
   "status": "pending"
 }
@@ -123,6 +127,7 @@ The enhanced order creation process:
 1. **Validates the delivery address** against delivery zones
 2. **Creates the order** only if the address is within a zone
 3. **Stores delivery coordinates** with the order for future routing
+4. **Calculates estimated delivery time** based on distance to agent
 
 ## Bangalore Zone Example
 
@@ -188,6 +193,39 @@ Any delivery address with coordinates within this polygon will be accepted for d
 // {"detail": "Delivery not available for this address. The location is outside all delivery zones."}
 ```
 
+### Optimizing Routes with ETA
+```json
+// POST /api/v1/route/optimize-with-eta
+[
+  {"latitude": 13.1056, "longitude": 77.5951}, // Agent location
+  {"latitude": 13.1000, "longitude": 77.5900}  // Customer location
+]
+
+// Response:
+{
+  "route": [...],
+  "distance_km": 2.5,
+  "estimated_delivery_time": {
+    "minutes": 15,
+    "formatted": "15 minutes"
+  },
+  "waypoint_etas": [
+    {
+      "waypoint_index": 0,
+      "waypoint": {"latitude": 13.1056, "longitude": 77.5951},
+      "eta": "2023-01-01T10:00:00Z",
+      "cumulative_minutes": 0
+    },
+    {
+      "waypoint_index": 1,
+      "waypoint": {"latitude": 13.1000, "longitude": 77.5900},
+      "eta": "2023-01-01T10:15:00Z",
+      "cumulative_minutes": 15
+    }
+  ]
+}
+```
+
 ## Required Address Format
 
 For the delivery zone validation to work, delivery addresses must include coordinates in one of these formats:
@@ -231,16 +269,33 @@ The cart screen now includes:
 - Storage of coordinates for order placement
 - Integration with the backend API to send coordinates with orders
 
+## Route Optimization and ETA Features
+
+### Backend Implementation
+The routing system now provides:
+1. **Optimized delivery routes** using OSRM
+2. **Distance calculations** between waypoints
+3. **Estimated delivery times** based on average speed
+4. **Detailed ETAs** for each delivery point
+
+### Frontend Implementation
+Both customer and delivery agent apps display:
+1. **Visual route paths** on maps
+2. **Estimated delivery times** in user-friendly format
+3. **Real-time ETA updates** for delivery agents
+4. **Delivery time banners** for customers
+
 ## Benefits of This Implementation
 
 1. **Geofencing**: Customers outside delivery zones cannot place orders
 2. **Efficient Agent Management**: Agents only receive orders in their zones
 3. **Optimized Routing**: Agents can plan efficient delivery routes
-4. **Scalability**: Easy to add new zones and agents as the business grows
-5. **Performance**: MongoDB geospatial indexes enable fast location queries
-6. **Data Integrity**: Orders are only created for deliverable addresses
-7. **Flexibility**: Supports both Expo location services and manual coordinate entry
-8. **User Experience**: Seamless location integration with fallback options
+4. **Delivery Time Estimates**: Customers get accurate delivery time predictions
+5. **Scalability**: Easy to add new zones and agents as the business grows
+6. **Performance**: MongoDB geospatial indexes enable fast location queries
+7. **Data Integrity**: Orders are only created for deliverable addresses
+8. **Flexibility**: Supports both Expo location services and manual coordinate entry
+9. **User Experience**: Seamless location integration with fallback options
 
 ## Future Enhancements
 
@@ -250,3 +305,5 @@ The cart screen now includes:
 4. **Advanced Routing**: Consider traffic, time windows, and delivery priorities
 5. **Location History**: Store user's frequently used locations
 6. **Address Autocomplete**: Integrate with address autocomplete services
+7. **Traffic-Aware Routing**: Integrate with traffic data for more accurate ETAs
+8. **Multi-stop Optimization**: Optimize routes for multiple deliveries simultaneously
