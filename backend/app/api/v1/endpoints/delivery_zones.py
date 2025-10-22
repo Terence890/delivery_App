@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from typing import List, Dict, Any
+import uuid
+from datetime import datetime
 
 from app.db.mongodb import get_database
-from app.models.delivery_zone import DeliveryZone, DeliveryZoneCreate, DeliveryZoneLegacy
+from app.models.delivery_zone import DeliveryZone, DeliveryZoneCreate, DeliveryZoneLegacy, GeoJSONPolygon
 from app.models.user import UserResponse, UserRole
 from app.core.security import require_role, get_current_user
 
@@ -33,11 +35,49 @@ async def get_delivery_zones(current_user: UserResponse = Depends(get_current_us
     return [DeliveryZone(**z) for z in converted_zones]
 
 @router.post("/", response_model=DeliveryZone)
-async def create_delivery_zone(zone_data: DeliveryZoneCreate, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
+async def create_delivery_zone(zone_data: Dict[str, Any], current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
     db = await get_database()
-    zone = DeliveryZone(**zone_data.dict())
-    await db.delivery_zones.insert_one(zone.dict())
-    return zone
+    
+    # Handle GeoJSON FeatureCollection format
+    if zone_data.get('type') == 'FeatureCollection':
+        features = zone_data.get('features', [])
+        if not features:
+            raise HTTPException(status_code=400, detail="FeatureCollection must contain at least one feature")
+        
+        # Process the first feature (assuming single polygon)
+        feature = features[0]
+        geometry = feature.get('geometry', {})
+        
+        if geometry.get('type') != 'Polygon':
+            raise HTTPException(status_code=400, detail="Geometry must be a Polygon")
+        
+        # Create delivery zone with the polygon data
+        delivery_zone_data = {
+            "id": str(uuid.uuid4()),
+            "name": feature.get('properties', {}).get('name', f'Delivery Zone {str(uuid.uuid4())[:8]}'),
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": geometry.get('coordinates', [])
+            },
+            "assigned_agents": [],
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.delivery_zones.insert_one(delivery_zone_data)
+        return DeliveryZone(**delivery_zone_data)
+    
+    # Handle standard DeliveryZoneCreate format
+    elif 'name' in zone_data and 'geometry' in zone_data:
+        try:
+            delivery_zone_create = DeliveryZoneCreate(**zone_data)
+            zone = DeliveryZone(**delivery_zone_create.dict())
+            await db.delivery_zones.insert_one(zone.dict())
+            return zone
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid delivery zone format: {str(e)}")
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid delivery zone data format. Must be either DeliveryZoneCreate or GeoJSON FeatureCollection.")
 
 @router.put("/{zone_id}/assign-agent")
 async def assign_agent_to_zone(zone_id: str, agent_id: str, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
