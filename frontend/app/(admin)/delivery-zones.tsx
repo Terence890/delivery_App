@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import MapView, { Polygon } from 'react-native-maps';
+import MapView, { Polygon, Region } from 'react-native-maps';
 import apiClient from '../../utils/axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,11 +13,13 @@ interface DeliveryZone {
   id: string;
   name: string;
   geometry: GeoJSONPolygon;
+  coordinates?: Array<{ latitude: number; longitude: number }>;
 }
 
 export default function DeliveryZonesScreen() {
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialRegion, setInitialRegion] = useState<Region | undefined>(undefined);
 
   useEffect(() => {
     fetchDeliveryZones();
@@ -48,6 +50,25 @@ export default function DeliveryZonesScreen() {
       });
       
       setZones(convertedZones);
+      
+      // Set initial region to center of first zone if available
+      if (convertedZones.length > 0 && convertedZones[0].coordinates && convertedZones[0].coordinates.length > 0) {
+        const coords = convertedZones[0].coordinates;
+        const latitudes = coords.map(c => c.latitude);
+        const longitudes = coords.map(c => c.longitude);
+        
+        const minLat = Math.min(...latitudes);
+        const maxLat = Math.max(...latitudes);
+        const minLng = Math.min(...longitudes);
+        const maxLng = Math.max(...longitudes);
+        
+        setInitialRegion({
+          latitude: (minLat + maxLat) / 2,
+          longitude: (minLng + maxLng) / 2,
+          latitudeDelta: (maxLat - minLat) * 1.2,
+          longitudeDelta: (maxLng - minLng) * 1.2,
+        });
+      }
     } catch (error) {
       console.error('Error fetching delivery zones:', error);
     } finally {
@@ -67,9 +88,9 @@ export default function DeliveryZonesScreen() {
     <SafeAreaView style={styles.container}>
       <MapView
         style={styles.map}
-        initialRegion={{
-          latitude: 37.7749,
-          longitude: -122.4194,
+        initialRegion={initialRegion || {
+          latitude: 13.105616358890572, // Bangalore latitude
+          longitude: 77.59514283308448, // Bangalore longitude
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
