@@ -159,16 +159,20 @@ class OrderCreate(BaseModel):
 class OrderStatusUpdate(BaseModel):
     status: str
 
+class GeoJSONPolygon(BaseModel):
+    type: str = "Polygon"
+    coordinates: List[List[List[float]]]  # [longitude, latitude] pairs
+
 class DeliveryZone(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    coordinates: List[dict]  # [{lat, lng}] polygon points
+    geometry: GeoJSONPolygon
     assigned_agents: List[str] = []  # user IDs of delivery agents
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class DeliveryZoneCreate(BaseModel):
     name: str
-    coordinates: List[dict]
+    geometry: GeoJSONPolygon
 
 # ============= AUTHENTICATION HELPERS =============
 
@@ -521,7 +525,26 @@ async def accept_order(order_id: str, current_user: UserResponse = Depends(requi
 @api_router.get("/delivery-zones", response_model=List[DeliveryZone])
 async def get_delivery_zones(current_user: UserResponse = Depends(get_current_user)):
     zones = await db.delivery_zones.find().to_list(1000)
-    return [DeliveryZone(**z) for z in zones]
+    
+    # Convert legacy format to new format if needed
+    converted_zones = []
+    for zone in zones:
+        if 'coordinates' in zone and 'geometry' not in zone:
+            # Convert legacy format to GeoJSON
+            coords = [[point['lng'], point['lat']] for point in zone['coordinates']]
+            # Close the polygon if not already closed
+            if coords and coords[0] != coords[-1]:
+                coords.append(coords[0])
+            zone['geometry'] = {
+                'type': 'Polygon',
+                'coordinates': [coords]
+            }
+            # Remove old coordinates field
+            if 'coordinates' in zone:
+                del zone['coordinates']
+        converted_zones.append(zone)
+    
+    return [DeliveryZone(**z) for z in converted_zones]
 
 @api_router.post("/delivery-zones", response_model=DeliveryZone)
 async def create_delivery_zone(zone_data: DeliveryZoneCreate, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):

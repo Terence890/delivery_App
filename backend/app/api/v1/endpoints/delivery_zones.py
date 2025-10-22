@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 
 from app.db.mongodb import get_database
-from app.models.delivery_zone import DeliveryZone, DeliveryZoneCreate
+from app.models.delivery_zone import DeliveryZone, DeliveryZoneCreate, DeliveryZoneLegacy
 from app.models.user import UserResponse, UserRole
 from app.core.security import require_role, get_current_user
 
@@ -12,7 +12,25 @@ router = APIRouter()
 async def get_delivery_zones(current_user: UserResponse = Depends(get_current_user)):
     db = await get_database()
     zones = await db.delivery_zones.find().to_list(1000)
-    return [DeliveryZone(**z) for z in zones]
+    
+    # Convert legacy format to new format if needed
+    converted_zones = []
+    for zone in zones:
+        if 'coordinates' in zone and 'geometry' not in zone:
+            # Convert legacy format to GeoJSON
+            coords = [[point['lng'], point['lat']] for point in zone['coordinates']]
+            # Close the polygon if not already closed
+            if coords and coords[0] != coords[-1]:
+                coords.append(coords[0])
+            zone['geometry'] = {
+                'type': 'Polygon',
+                'coordinates': [coords]
+            }
+            # Remove old coordinates field
+            del zone['coordinates']
+        converted_zones.append(zone)
+    
+    return [DeliveryZone(**z) for z in converted_zones]
 
 @router.post("/", response_model=DeliveryZone)
 async def create_delivery_zone(zone_data: DeliveryZoneCreate, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):

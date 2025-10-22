@@ -4,10 +4,15 @@ import MapView, { Polygon } from 'react-native-maps';
 import apiClient from '../../utils/axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+interface GeoJSONPolygon {
+  type: string;
+  coordinates: number[][][]; // [longitude, latitude] pairs
+}
+
 interface DeliveryZone {
   id: string;
   name: string;
-  coordinates: Array<{ latitude: number; longitude: number }>;
+  geometry: GeoJSONPolygon;
 }
 
 export default function DeliveryZonesScreen() {
@@ -21,7 +26,28 @@ export default function DeliveryZonesScreen() {
   const fetchDeliveryZones = async () => {
     try {
       const response = await apiClient.get('/delivery-zones');
-      setZones(response.data);
+      
+      // Convert GeoJSON format to react-native-maps format
+      const convertedZones = response.data.map((zone: any) => {
+        // Handle both new GeoJSON format and legacy format
+        if (zone.geometry && zone.geometry.coordinates) {
+          // New GeoJSON format
+          const coordinates = zone.geometry.coordinates[0].map((coord: number[]) => ({
+            longitude: coord[0],
+            latitude: coord[1]
+          }));
+          return {
+            ...zone,
+            coordinates: coordinates
+          };
+        } else if (zone.coordinates) {
+          // Legacy format
+          return zone;
+        }
+        return zone;
+      });
+      
+      setZones(convertedZones);
     } catch (error) {
       console.error('Error fetching delivery zones:', error);
     } finally {
@@ -51,7 +77,7 @@ export default function DeliveryZonesScreen() {
         {zones.map((zone) => (
           <Polygon
             key={zone.id}
-            coordinates={zone.coordinates}
+            coordinates={zone.coordinates || []}
             strokeColor="#FF9500"
             fillColor="rgba(255, 149, 0, 0.5)"
             strokeWidth={2}
