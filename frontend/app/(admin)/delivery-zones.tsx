@@ -100,7 +100,7 @@ export default function DeliveryZonesScreen() {
             key={zone.id}
             coordinates={zone.coordinates || []}
             strokeColor="#FF9500"
-            fillColor="rgba(255, 149, 0, 0.5)"
+            fillColor="rgba(235, 164, 65, 0.5)"
             strokeWidth={2}
           />
         ))}

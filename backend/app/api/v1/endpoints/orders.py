@@ -7,16 +7,35 @@ from app.models.order import Order, OrderCreate, OrderStatusUpdate, OrderItem
 from app.models.product import Product
 from app.models.user import UserResponse, UserRole
 from app.core.security import require_role, get_current_user
+from app.services.geospatial_service import get_zone_for_location, extract_coordinates_from_address
 
 router = APIRouter()
 
 @router.post("/", response_model=Order)
 async def create_order(order_data: OrderCreate, current_user: UserResponse = Depends(get_current_user)):
     db = await get_database()
+    
     # Get cart items
     cart = await db.carts.find_one({"user_id": current_user.id})
     if not cart or not cart.get('items'):
         raise HTTPException(status_code=400, detail="Cart is empty")
+    
+    # Validate delivery address is within a delivery zone
+    coordinates = extract_coordinates_from_address(order_data.delivery_address)
+    if not coordinates:
+        # In a real implementation, we would use a geocoding service here
+        raise HTTPException(
+            status_code=400, 
+            detail="Could not extract coordinates from delivery address. Please include coordinates in format 'lat,lng: 13.1056,77.5951'"
+        )
+    
+    latitude, longitude = coordinates
+    zone = await get_zone_for_location(db, longitude, latitude)
+    if not zone:
+        raise HTTPException(
+            status_code=400, 
+            detail="Delivery not available for this address. The location is outside all delivery zones."
+        )
     
     # Calculate order items and total
     order_items = []
@@ -47,14 +66,18 @@ async def create_order(order_data: OrderCreate, current_user: UserResponse = Dep
             {"$inc": {"stock": -cart_item['quantity']}}
         )
     
-    # Create order
+    # Create order with delivery location
     order = Order(
         user_id=current_user.id,
         user_name=current_user.name,
         user_phone=current_user.phone or "N/A",
         user_address=order_data.delivery_address,
         items=order_items,
-        total_amount=total_amount
+        total_amount=total_amount,
+        delivery_location={
+            "latitude": latitude,
+            "longitude": longitude
+        }
     )
     
     await db.orders.insert_one(order.dict())

@@ -31,6 +31,16 @@ async def create_geospatial_index():
         for name, info in indexes.items():
             print(f"  {name}: {info}")
         
+        # Also create indexes for other collections
+        await db.orders.create_index([("delivery_location", "2dsphere")])
+        print("✓ Created 2dsphere index for orders.delivery_location")
+        
+        await db.orders.create_index([("user_id", 1)])
+        print("✓ Created index for orders.user_id")
+        
+        await db.users.create_index([("role", 1)])
+        print("✓ Created index for users.role")
+        
     except Exception as e:
         print(f"✗ Error: {e}")
     finally:
