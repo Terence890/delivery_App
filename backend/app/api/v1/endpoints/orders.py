@@ -11,7 +11,7 @@ from app.services.geospatial_service import get_zone_for_location, extract_coord
 
 router = APIRouter()
 
-@router.post("/", response_model=Order)
+@router.post("", response_model=Order)
 async def create_order(order_data: OrderCreate, current_user: UserResponse = Depends(get_current_user)):
     db = await get_database()
     
