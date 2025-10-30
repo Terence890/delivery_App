@@ -9,11 +9,26 @@ from app.core.security import require_role, get_current_user
 router = APIRouter()
 
 @router.get("", response_model=PaginatedProductsResponse)
-async def get_products(category: str = None, page: int = 1, limit: int = 20):
-    db = get_database()
+async def get_products(
+    category: str = None, 
+    search: str = None,
+    page: int = 1, 
+    limit: int = 20
+):
+    db = await get_database()
     query = {}
+    
     if category:
         query["category"] = category
+    
+    # Add search functionality
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"name": search_regex},
+            {"description": search_regex},
+            {"brand": search_regex}
+        ]
     
     skip = (page - 1) * limit
     total_products = await db.products.count_documents(query)
@@ -27,7 +42,7 @@ async def get_products(category: str = None, page: int = 1, limit: int = 20):
 
 @router.get("/{product_id}", response_model=Product)
 async def get_product(product_id: str):
-    db = get_database()
+    db = await get_database()
     product = await db.products.find_one({"id": product_id})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -35,14 +50,14 @@ async def get_product(product_id: str):
 
 @router.post("/", response_model=Product)
 async def create_product(product_data: ProductCreate, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
-    db = get_database()
+    db = await get_database()
     product = Product(**product_data.dict())
     await db.products.insert_one(product.dict())
     return product
 
 @router.put("/{product_id}", response_model=Product)
 async def update_product(product_id: str, product_data: ProductCreate, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
-    db = get_database()
+    db = await get_database()
     result = await db.products.update_one({"id": product_id}, {"$set": product_data.dict()})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -51,7 +66,7 @@ async def update_product(product_id: str, product_data: ProductCreate, current_u
 
 @router.delete("/{product_id}")
 async def delete_product(product_id: str, current_user: UserResponse = Depends(require_role([UserRole.ADMIN]))):
-    db = get_database()
+    db = await get_database()
     result = await db.products.delete_one({"id": product_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -59,6 +74,6 @@ async def delete_product(product_id: str, current_user: UserResponse = Depends(r
 
 @router.get("/categories")
 async def get_categories():
-    db = get_database()
+    db = await get_database()
     categories = await db.products.distinct("category")
     return {"categories": categories}

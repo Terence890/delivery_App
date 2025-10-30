@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,11 +10,11 @@ import {
   SafeAreaView,
   Alert,
   Linking, // Import Linking
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import apiClient from '../../utils/axios';
-import { useAuthStore } from '../../store/authStore';
-import { format } from 'date-fns';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import apiClient from "../../utils/axios";
+import { useAuthStore } from "../../store/authStore";
+import { format } from "date-fns";
 
 interface Order {
   id: string;
@@ -43,15 +43,15 @@ export default function ActiveDeliveriesScreen() {
 
   const fetchActiveOrders = async () => {
     try {
-      const response = await apiClient.get('/orders');
+      const response = await apiClient.get("/orders");
       const activeOrders = response.data.filter(
         (order: Order) =>
           order.delivery_agent_id === user?.id &&
-          ['preparing', 'out_for_delivery'].includes(order.status)
+          ["preparing", "out_for_delivery"].includes(order.status)
       );
       setOrders(activeOrders);
     } catch (error) {
-      console.error('Error fetching active orders:', error);
+      console.error("Error fetching active orders:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -68,21 +68,24 @@ export default function ActiveDeliveriesScreen() {
       await apiClient.put(`/orders/${orderId}/status`, {
         status: newStatus,
       });
-      Alert.alert('Success', `Order marked as ${newStatus.replace('_', ' ')}`);
+      Alert.alert("Success", `Order marked as ${newStatus.replace("_", " ")}`);
       fetchActiveOrders();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to update order');
+      Alert.alert(
+        "Error",
+        error.response?.data?.detail || "Failed to update order"
+      );
     }
   };
 
   const renderOrder = ({ item }: { item: Order }) => {
-    const isOutForDelivery = item.status === 'out_for_delivery';
+    const isOutForDelivery = item.status === "out_for_delivery";
 
     const openMapForAddress = (address: string) => {
       const encodedAddress = encodeURIComponent(address);
       const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
       Linking.openURL(url).catch((err) =>
-        console.error('Failed to open map', err)
+        console.error("Failed to open map", err)
       );
     };
 
@@ -90,25 +93,23 @@ export default function ActiveDeliveriesScreen() {
       <View style={styles.orderCard}>
         <View style={styles.statusBadge}>
           <Ionicons
-            name={isOutForDelivery ? 'car' : 'restaurant'}
+            name={isOutForDelivery ? "car" : "restaurant"}
             size={16}
             color="#fff"
           />
           <Text style={styles.statusText}>
-            {item.status.replace('_', ' ').toUpperCase()}
+            {item.status.replace("_", " ").toUpperCase()}
           </Text>
         </View>
 
         <View style={styles.orderHeader}>
           <Text style={styles.customerName}>{item.user_name}</Text>
-          <Text style={styles.amount}>${item.total_amount.toFixed(2)}</Text>
+          <Text style={styles.amount}>₹{item.total_amount.toFixed(2)}</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Ionicons name="call" size={16} color="#007AFF" />
           <Text style={styles.phone}>{item.user_phone}</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Ionicons name="location" size={16} color="#FF3B30" />
           <Text style={styles.address} numberOfLines={2}>
@@ -118,11 +119,14 @@ export default function ActiveDeliveriesScreen() {
             style={styles.trackButton}
             onPress={() => openMapForAddress(item.user_address)}
           >
-            <Ionicons name="navigate-circle-outline" size={20} color="#007AFF" />
+            <Ionicons
+              name="navigate-circle-outline"
+              size={20}
+              color="#007AFF"
+            />
             <Text style={styles.trackButtonText}>Track</Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.itemsContainer}>
           <Text style={styles.itemsLabel}>{item.items.length} items</Text>
           {item.items.slice(0, 2).map((orderItem, index) => (
@@ -131,21 +135,20 @@ export default function ActiveDeliveriesScreen() {
             </Text>
           ))}
         </View>
-
         <View style={styles.actions}>
-          {item.status === 'preparing' && (
+          {item.status === "preparing" && (
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => updateOrderStatus(item.id, 'out_for_delivery')}
+              onPress={() => updateOrderStatus(item.id, "out_for_delivery")}
             >
               <Ionicons name="car" size={20} color="#fff" />
               <Text style={styles.actionButtonText}>Start Delivery</Text>
             </TouchableOpacity>
           )}
-          {item.status === 'out_for_delivery' && (
+          {item.status === "out_for_delivery" && (
             <TouchableOpacity
               style={[styles.actionButton, styles.deliveredButton]}
-              onPress={() => updateOrderStatus(item.id, 'delivered')}
+              onPress={() => updateOrderStatus(item.id, "delivered")}
             >
               <Ionicons name="checkmark-done" size={20} color="#fff" />
               <Text style={styles.actionButtonText}>Mark Delivered</Text>
@@ -195,151 +198,151 @@ export default function ActiveDeliveriesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#fff",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   ordersList: {
     padding: 16,
   },
   orderCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF9500',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FF9500",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 12,
     gap: 6,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   customerName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   amount: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#34C759',
+    fontWeight: "bold",
+    color: "#34C759",
   },
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   phone: {
     fontSize: 14,
-    color: '#007AFF',
+    color: "#007AFF",
     marginLeft: 8,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   address: {
     fontSize: 16,
-    color: '#555',
+    color: "#555",
     marginLeft: 8,
     flex: 1,
   },
   trackButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e6f0ff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e6f0ff",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 20,
     marginLeft: 10,
   },
   trackButtonText: {
-    color: '#007AFF',
+    color: "#007AFF",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 4,
   },
   itemsContainer: {
     marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: "#f0f0f0",
     paddingTop: 10,
   },
   itemsLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: "600",
+    color: "#666",
     marginBottom: 4,
   },
   itemText: {
     fontSize: 13,
-    color: '#333',
+    color: "#333",
     marginTop: 2,
   },
   actions: {
     marginTop: 12,
   },
   actionButton: {
-    flexDirection: 'row',
-    backgroundColor: '#FF9500',
+    flexDirection: "row",
+    backgroundColor: "#FF9500",
     borderRadius: 12,
     padding: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   deliveredButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: "#34C759",
   },
   actionButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 64,
   },
   emptyText: {
     fontSize: 18,
-    color: '#999',
+    color: "#999",
     marginTop: 16,
   },
 });
