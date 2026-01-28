@@ -158,7 +158,7 @@ Get a visual preview of the Delivery App across different user roles and feature
     <td width="50%">
       <h4>Login Screen</h4>
       <img src="Screenshot/Login.jpg" alt="Login Screen" width="100%"/>
-      <p><em>Secure login interface with role-based authentication for customers, drivers, and administrators.</em></p>
+      <p><em>Secure login interface with role-based authentication for customers, delivery agents, and administrators.</em></p>
     </td>
     <td width="50%">
       <h4>Registration Screen</h4>
@@ -203,7 +203,7 @@ Get a visual preview of the Delivery App across different user roles and feature
   <tr>
     <td width="50%">
       <h4>Available Deliveries</h4>
-      <img src="Screenshot/Driver_Available_Page.jpg" alt="Driver Available Deliveries" width="100%"/>
+      <img src="Screenshot/Driver_Available_Page.jpg" alt="Delivery Agent Available Deliveries" width="100%"/>
       <p><em>View available delivery requests with location details and accept orders efficiently.</em></p>
     </td>
     <td width="50%">
