@@ -2,150 +2,10 @@
 
 A comprehensive full-stack delivery application that revolutionizes the delivery ecosystem by seamlessly connecting customers, delivery agents, and administrators. Built with modern technologies, this platform features a high-performance backend API powered by FastAPI and three separate, role-specific mobile applications developed using React Native (Expo).
 
-## Table of Contents
-
-- [Screenshots](#screenshots)
-- [Architecture Overview](#architecture-overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
-- [System Architecture](#system-architecture)
-  - [Backend Architecture](#backend-architecture)
-  - [Frontend Architecture](#frontend-architecture)
-  - [Database Design](#database-design)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
-- [API Documentation](#api-documentation)
-  - [Authentication](#authentication)
-  - [API Endpoints](#api-endpoints)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Architecture Overview
 
 The Delivery App follows a modern microservices-inspired architecture with clear separation of concerns:
-
-### System Design Principles
-- **Role-Based Architecture**: Three distinct mobile applications tailored for specific user roles (Customer, Delivery Agent, Admin)
-- **RESTful API Design**: Clean, intuitive API endpoints following REST principles
-- **Asynchronous Operations**: High-performance async backend for scalability
-- **Document-Oriented Storage**: Flexible data models using MongoDB
-- **Stateless Authentication**: JWT tokens for secure, scalable authentication
-- **Real-time Updates**: Instant stock management and order status tracking
-
-### High-Level Architecture
-```
-┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
-│   Customer App      │     │  Delivery Agent App │     │    Admin Panel      │
-│  (React Native)     │     │  (React Native)     │     │  (React Native)     │
-└──────────┬──────────┘     └──────────┬──────────┘     └──────────┬──────────┘
-           │                           │                           │
-           └───────────────────────────┴───────────────────────────┘
-                                       │
-                                       │ HTTPS/REST
-                                       │
-                          ┌────────────▼────────────┐
-                          │    FastAPI Backend     │
-                          │  - Authentication (JWT) │
-                          │  - Business Logic      │
-                          │  - API Endpoints       │
-                          └────────────┬────────────┘
-                                       │
-                          ┌────────────▼────────────┐
-                          │      MongoDB           │
-                          │  - Users Collection    │
-                          │  - Products Collection │
-                          │  - Orders Collection   │
-                          │  - Carts Collection    │
-                          │  - Zones Collection    │
-                          └─────────────────────────┘
-```
-
-### Key Architectural Decisions
-
-1. **Three Separate Mobile Apps**: Instead of a single app with role-based views, we built three dedicated apps for optimal user experience:
-   - **Customer App**: Focused on shopping experience with intuitive product browsing
-   - **Delivery Agent App**: Streamlined for delivery operations and route management
-   - **Admin Panel**: Comprehensive control center for business management
-
-2. **Asynchronous Backend**: FastAPI with Motor (async MongoDB driver) ensures high performance and scalability
-
-3. **Document Database**: MongoDB provides flexibility for varied product attributes and order structures
-
-4. **Base64 Image Storage**: Images stored as base64 strings in documents for simplified deployment (suitable for small to medium catalogs)
-
-5. **JWT Authentication**: Stateless authentication allows horizontal scaling without session management
-
-6. **Role-Based Access Control (RBAC)**: Fine-grained permissions ensure data security and proper access control
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.9+ and pip
-- Node.js (LTS) and npm/yarn
-- MongoDB instance
-- Expo Go app on your mobile device
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd delivery_App
-```
-
-### 2. Backend Setup (5 minutes)
-```bash
-# Navigate to backend
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env  # Edit with your MongoDB URL
-
-# Run the server
-uvicorn server:app --reload
-```
-
-Backend will be available at `http://localhost:8000`
-
-### 3. Frontend Setup (5 minutes)
-```bash
-# Open new terminal, navigate to frontend
-cd frontend
-
-# Install dependencies
-npm install  # or yarn install
-
-# Configure environment
-echo "EXPO_PUBLIC_API_URL=http://YOUR_IP_ADDRESS:8000" > .env
-
-# Start Expo
-npm start  # or yarn start
-```
-
-### 4. Test the App
-1. Scan the QR code with Expo Go app
-2. Use test credentials:
-   - **Customer**: customer@test.com / customer123
-   - **Admin**: admin@shop.com / admin123
-   - **Driver**: driver@test.com / driver123
-
-### 5. Verify Everything Works
-- ✅ Browse products as customer
-- ✅ Add items to cart
-- ✅ Create products as admin
-- ✅ View orders as delivery agent
 
 ## Screenshots
 
@@ -213,6 +73,69 @@ Get a visual preview of the Delivery App across different user roles and feature
     </td>
   </tr>
 </table>
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.9+ and pip
+- Node.js (LTS) and npm/yarn
+- MongoDB instance
+- Expo Go app on your mobile device
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd delivery_App
+```
+
+### 2. Backend Setup (5 minutes)
+```bash
+# Navigate to backend
+cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env  # Edit with your MongoDB URL
+
+# Run the server
+uvicorn server:app --reload
+```
+
+Backend will be available at `http://localhost:8000`
+
+### 3. Frontend Setup (5 minutes)
+```bash
+# Open new terminal, navigate to frontend
+cd frontend
+
+# Install dependencies
+npm install  # or yarn install
+
+# Configure environment
+echo "EXPO_PUBLIC_API_URL=http://YOUR_IP_ADDRESS:8000" > .env
+
+# Start Expo
+npm start  # or yarn start
+```
+
+### 4. Test the App
+1. Scan the QR code with Expo Go app
+2. Use test credentials:
+   - **Customer**: customer@test.com / customer123
+   - **Admin**: admin@shop.com / admin123
+   - **Driver**: driver@test.com / driver123
+
+### 5. Verify Everything Works
+- ✅ Browse products as customer
+- ✅ Add items to cart
+- ✅ Create products as admin
+- ✅ View orders as delivery agent
 
 ## Features
 
