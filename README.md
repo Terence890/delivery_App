@@ -74,6 +74,35 @@ Get a visual preview of the Delivery App across different user roles and feature
   </tr>
 </table>
 
+### Admin Application
+
+<table>
+  <tr>
+    <td width="50%">
+      <h4>Dashboard</h4>
+      <img src="Screenshot/Admin_dashboard.jpg" alt="Admin Dashboard" width="100%"/>
+      <p><em>Comprehensive dashboard with key metrics, statistics, and system overview for administrators.</em></p>
+    </td>
+    <td width="50%">
+      <h4>Product Management</h4>
+      <img src="Screenshot/Admin_product_page.jpg" alt="Admin Product Page" width="100%"/>
+      <p><em>Manage product catalog, add new items, update pricing, and control inventory.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4>Order Management</h4>
+      <img src="Screenshot/Admin_order_page.jpg" alt="Admin Order Page" width="100%"/>
+      <p><em>Monitor and manage all orders, track delivery status, and handle order operations.</em></p>
+    </td>
+    <td width="50%">
+      <h4>Profile Settings</h4>
+      <img src="Screenshot/Admin_profile_page.jpg" alt="Admin Profile Page" width="100%"/>
+      <p><em>Manage administrator profile, system settings, and account preferences.</em></p>
+    </td>
+  </tr>
+</table>
+
 ## 🚀 Quick Start
 
 ### Prerequisites
