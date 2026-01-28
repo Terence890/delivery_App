@@ -4,6 +4,7 @@ A comprehensive full-stack delivery application that revolutionizes the delivery
 
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Architecture Overview](#architecture-overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
@@ -145,6 +146,73 @@ npm start  # or yarn start
 - ✅ Add items to cart
 - ✅ Create products as admin
 - ✅ View orders as delivery agent
+
+## Screenshots
+
+Get a visual preview of the Delivery App across different user roles and features.
+
+### Authentication
+
+<table>
+  <tr>
+    <td width="50%">
+      <h4>Login Screen</h4>
+      <img src="Screenshot/Login.jpg" alt="Login Screen" width="100%"/>
+      <p><em>Secure login interface with role-based authentication for customers, drivers, and administrators.</em></p>
+    </td>
+    <td width="50%">
+      <h4>Registration Screen</h4>
+      <img src="Screenshot/Register.jpg" alt="Registration Screen" width="100%"/>
+      <p><em>User registration with comprehensive form validation and role selection.</em></p>
+    </td>
+  </tr>
+</table>
+
+### Customer Application
+
+<table>
+  <tr>
+    <td width="50%">
+      <h4>Home Page</h4>
+      <img src="Screenshot/Customer_Home_page.jpg" alt="Customer Home Page" width="100%"/>
+      <p><em>Browse products with intuitive categorization, search functionality, and product details.</em></p>
+    </td>
+    <td width="50%">
+      <h4>Shopping Cart</h4>
+      <img src="Screenshot/Customer_Cart_Page.jpg" alt="Customer Cart Page" width="100%"/>
+      <p><em>Review cart items, adjust quantities, and proceed to checkout seamlessly.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4>Orders Page</h4>
+      <img src="Screenshot/Customer_Order_page.jpg" alt="Customer Orders Page" width="100%"/>
+      <p><em>Track order history, view order status, and manage deliveries in real-time.</em></p>
+    </td>
+    <td width="50%">
+      <h4>Profile Page</h4>
+      <img src="Screenshot/Customer_Profile_Page.jpg" alt="Customer Profile Page" width="100%"/>
+      <p><em>Manage personal information, delivery addresses, and account settings.</em></p>
+    </td>
+  </tr>
+</table>
+
+### Delivery Agent Application
+
+<table>
+  <tr>
+    <td width="50%">
+      <h4>Available Deliveries</h4>
+      <img src="Screenshot/Driver_Available_Page.jpg" alt="Driver Available Deliveries" width="100%"/>
+      <p><em>View available delivery requests with location details and accept orders efficiently.</em></p>
+    </td>
+    <td width="50%">
+      <h4>Active Deliveries</h4>
+      <img src="Screenshot/Active_Page.jpg" alt="Active Deliveries Page" width="100%"/>
+      <p><em>Manage ongoing deliveries, update delivery status, and track delivery progress.</em></p>
+    </td>
+  </tr>
+</table>
 
 ## Features
 
